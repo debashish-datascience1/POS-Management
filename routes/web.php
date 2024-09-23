@@ -99,6 +99,24 @@ Route::middleware(['setData'])->group(function () {
 
 //Routes for authenticated users only
 Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 'AdminSidebarMenu', 'CheckUserLogin'])->group(function () {
+    Route::prefix('production')->group(function () {
+        Route::get('/unit', [App\Http\Controllers\ProductionController::class, 'index'])->name('production.index');
+        Route::get('/unit/create', [App\Http\Controllers\ProductionController::class, 'create'])->name('production.create');
+        Route::post('/unit', [App\Http\Controllers\ProductionController::class, 'store'])->name('production.store');
+        Route::get('/unit/{id}/edit', [App\Http\Controllers\ProductionController::class, 'edit'])->name('production.edit');
+        Route::put('/unit/{id}', [App\Http\Controllers\ProductionController::class, 'update'])->name('production.update');
+        Route::delete('/unit/{id}', [App\Http\Controllers\ProductionController::class, 'destroy'])->name('production.destroy');
+
+        // Packing routes
+        Route::get('/packing', [App\Http\Controllers\PackingController::class, 'index'])->name('packing.index');
+        Route::get('/packing/create', [App\Http\Controllers\PackingController::class, 'create'])->name('packing.create');
+        Route::post('/packing', [App\Http\Controllers\PackingController::class, 'store'])->name('packing.store');
+        Route::get('/packing/{id}/edit', [App\Http\Controllers\PackingController::class, 'edit'])->name('packing.edit');
+        Route::put('/packing/{id}', [App\Http\Controllers\PackingController::class, 'update'])->name('packing.update');
+        Route::delete('/packing/{id}', [App\Http\Controllers\PackingController::class, 'destroy'])->name('packing.destroy');
+    });
+    Route::get('/get-product-stock/{id}', [App\Http\Controllers\ProductController::class, 'getProductStock']);
+    Route::get('/get-product-output/{id}', [App\Http\Controllers\PackingController::class, 'getProductOutput']);
     Route::get('pos/payment/{id}', [SellPosController::class, 'edit'])->name('edit-pos-payment');
     Route::get('service-staff-availability', [SellPosController::class, 'showServiceStaffAvailibility']);
     Route::get('pause-resume-service-staff-timer/{user_id}', [SellPosController::class, 'pauseResumeServiceStaffTimer']);
@@ -524,17 +542,4 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone'])
     Route::get('/sells/invoice-url/{id}', [SellPosController::class, 'showInvoiceUrl']);
     Route::get('/show-notification/{id}', [HomeController::class, 'showNotification']);
 });
-    Route::get('/production/unit', [App\Http\Controllers\ProductionController::class, 'index'])->name('production.index');
-    Route::get('/production/unit/create', [App\Http\Controllers\ProductionController::class, 'create'])->name('production.create');
-    Route::post('/production/unit', [App\Http\Controllers\ProductionController::class, 'store'])->name('production.store');
-    Route::get('/production/unit/{id}/edit', [App\Http\Controllers\ProductionController::class, 'edit'])->name('production.edit');
-    Route::put('/production/unit/{id}', [App\Http\Controllers\ProductionController::class, 'update'])->name('production.update');
-    Route::delete('/production/unit/{id}', [App\Http\Controllers\ProductionController::class, 'destroy'])->name('production.destroy');
-    Route::get('/production/packing', [App\Http\Controllers\PackingController::class, 'index'])->name('packing.index');
-    Route::get('/production/packing/create', [App\Http\Controllers\PackingController::class, 'create'])->name('packing.create');
-    Route::get('/get-product-output/{id}', [App\Http\Controllers\PackingController::class, 'getProductOutput']);
-    Route::post('/production/packing', [App\Http\Controllers\PackingController::class, 'store'])->name('packing.store');
-    Route::get('/packing/{id}/edit', [App\Http\Controllers\PackingController::class, 'edit'])->name('packing.edit');
-    Route::put('/packing/{id}', [App\Http\Controllers\PackingController::class, 'update'])->name('packing.update');
-    Route::delete('/packing/{id}', [App\Http\Controllers\PackingController::class, 'destroy'])->name('packing.destroy');
-    
+

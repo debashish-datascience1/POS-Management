@@ -60,295 +60,63 @@ class ProductController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
-    {
-        if (! auth()->user()->can('product.view') && ! auth()->user()->can('product.create')) {
-            abort(403, 'Unauthorized action.');
-        }
-        $business_id = request()->session()->get('user.business_id');
-        $selling_price_group_count = SellingPriceGroup::countSellingPriceGroups($business_id);
-        $is_woocommerce = $this->moduleUtil->isModuleInstalled('Woocommerce');
-
-        if (request()->ajax()) {
-            //Filter by location
-            $location_id = request()->get('location_id', null);
-            $permitted_locations = auth()->user()->permitted_locations();
-
-            $query = Product::with(['media'])
-                ->leftJoin('brands', 'products.brand_id', '=', 'brands.id')
-                ->join('units', 'products.unit_id', '=', 'units.id')
-                ->leftJoin('categories as c1', 'products.category_id', '=', 'c1.id')
-                ->leftJoin('categories as c2', 'products.sub_category_id', '=', 'c2.id')
-                ->leftJoin('tax_rates', 'products.tax', '=', 'tax_rates.id')
-                ->join('variations as v', 'v.product_id', '=', 'products.id')
-                ->leftJoin('variation_location_details as vld', function ($join) use ($permitted_locations) {
-                    $join->on('vld.variation_id', '=', 'v.id');
-                    if ($permitted_locations != 'all') {
-                        $join->whereIn('vld.location_id', $permitted_locations);
-                    }
-                })
-                ->whereNull('v.deleted_at')
-                ->where('products.business_id', $business_id)
-                ->where('products.type', '!=', 'modifier');
-
-            if (! empty($location_id) && $location_id != 'none') {
-                if ($permitted_locations == 'all' || in_array($location_id, $permitted_locations)) {
-                    $query->whereHas('product_locations', function ($query) use ($location_id) {
-                        $query->where('product_locations.location_id', '=', $location_id);
-                    });
-                }
-            } elseif ($location_id == 'none') {
-                $query->doesntHave('product_locations');
-            } else {
-                if ($permitted_locations != 'all') {
-                    $query->whereHas('product_locations', function ($query) use ($permitted_locations) {
-                        $query->whereIn('product_locations.location_id', $permitted_locations);
-                    });
-                } else {
-                    $query->with('product_locations');
-                }
-            }
-
-            $products = $query->select(
-                'products.id',
-                'products.name as product',
-                'products.type',
-                'c1.name as category',
-                'c2.name as sub_category',
-                'units.actual_name as unit',
-                'brands.name as brand',
-                'tax_rates.name as tax',
-                'products.sku',
-                'products.image',
-                'products.enable_stock',
-                'products.is_inactive',
-                'products.not_for_selling',
-                'products.product_custom_field1', 'products.product_custom_field2', 'products.product_custom_field3', 'products.product_custom_field4', 'products.product_custom_field5', 'products.product_custom_field6',
-                'products.product_custom_field7', 'products.product_custom_field8', 'products.product_custom_field9',
-                'products.product_custom_field10', 'products.product_custom_field11', 'products.product_custom_field12',
-                'products.product_custom_field13', 'products.product_custom_field14', 'products.product_custom_field15',
-                'products.product_custom_field16', 'products.product_custom_field17', 'products.product_custom_field18', 
-                'products.product_custom_field19', 'products.product_custom_field20',
-                'products.alert_quantity',
-                DB::raw('SUM(vld.qty_available) as current_stock'),
-                DB::raw('MAX(v.sell_price_inc_tax) as max_price'),
-                DB::raw('MIN(v.sell_price_inc_tax) as min_price'),
-                DB::raw('MAX(v.dpp_inc_tax) as max_purchase_price'),
-                DB::raw('MIN(v.dpp_inc_tax) as min_purchase_price')
-                );
-
-            //if woocomerce enabled add field to query
-            if ($is_woocommerce) {
-                $products->addSelect('woocommerce_disable_sync');
-            }
-
-            $products->groupBy('products.id');
-
-            $type = request()->get('type', null);
-            if (! empty($type)) {
-                $products->where('products.type', $type);
-            }
-
-            $category_id = request()->get('category_id', null);
-            if (! empty($category_id)) {
-                $products->where('products.category_id', $category_id);
-            }
-
-            $brand_id = request()->get('brand_id', null);
-            if (! empty($brand_id)) {
-                $products->where('products.brand_id', $brand_id);
-            }
-
-            $unit_id = request()->get('unit_id', null);
-            if (! empty($unit_id)) {
-                $products->where('products.unit_id', $unit_id);
-            }
-
-            $tax_id = request()->get('tax_id', null);
-            if (! empty($tax_id)) {
-                $products->where('products.tax', $tax_id);
-            }
-
-            $active_state = request()->get('active_state', null);
-            if ($active_state == 'active') {
-                $products->Active();
-            }
-            if ($active_state == 'inactive') {
-                $products->Inactive();
-            }
-            $not_for_selling = request()->get('not_for_selling', null);
-            if ($not_for_selling == 'true') {
-                $products->ProductNotForSales();
-            }
-
-            $woocommerce_enabled = request()->get('woocommerce_enabled', 0);
-            if ($woocommerce_enabled == 1) {
-                $products->where('products.woocommerce_disable_sync', 0);
-            }
-
-            if (! empty(request()->get('repair_model_id'))) {
-                $products->where('products.repair_model_id', request()->get('repair_model_id'));
-            }
-
-            return Datatables::of($products)
-                ->addColumn(
-                    'product_locations',
-                    function ($row) {
-                        return $row->product_locations->implode('name', ', ');
-                    }
-                )
-                ->editColumn('category', '{{$category}} @if(!empty($sub_category))<br/> -- {{$sub_category}}@endif')
-                ->addColumn(
-                    'action',
-                    function ($row) use ($selling_price_group_count) {
-                        $html =
-                        '<div class="btn-group"><button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline  tw-dw-btn-info tw-w-max dropdown-toggle" data-toggle="dropdown" aria-expanded="false">'.__('messages.actions').'<span class="caret"></span><span class="sr-only">Toggle Dropdown</span></button><ul class="dropdown-menu dropdown-menu-left" role="menu"><li><a href="'.action([\App\Http\Controllers\LabelsController::class, 'show']).'?product_id='.$row->id.'" data-toggle="tooltip" title="'.__('lang_v1.label_help').'"><i class="fa fa-barcode"></i> '.__('barcode.labels').'</a></li>';
-
-                        if (auth()->user()->can('product.view')) {
-                            $html .=
-                            '<li><a href="'.action([\App\Http\Controllers\ProductController::class, 'view'], [$row->id]).'" class="view-product"><i class="fa fa-eye"></i> '.__('messages.view').'</a></li>';
-                        }
-
-                        if (auth()->user()->can('product.update')) {
-                            $html .=
-                            '<li><a href="'.action([\App\Http\Controllers\ProductController::class, 'edit'], [$row->id]).'"><i class="glyphicon glyphicon-edit"></i> '.__('messages.edit').'</a></li>';
-                        }
-
-                        if (auth()->user()->can('product.delete')) {
-                            $html .=
-                            '<li><a href="'.action([\App\Http\Controllers\ProductController::class, 'destroy'], [$row->id]).'" class="delete-product"><i class="fa fa-trash"></i> '.__('messages.delete').'</a></li>';
-                        }
-
-                        if ($row->is_inactive == 1) {
-                            $html .=
-                            '<li><a href="'.action([\App\Http\Controllers\ProductController::class, 'activate'], [$row->id]).'" class="activate-product"><i class="fas fa-check-circle"></i> '.__('lang_v1.reactivate').'</a></li>';
-                        }
-
-                        $html .= '<li class="divider"></li>';
-
-                        if ($row->enable_stock == 1 && auth()->user()->can('product.opening_stock')) {
-                            $html .=
-                            '<li><a href="#" data-href="'.action([\App\Http\Controllers\OpeningStockController::class, 'add'], ['product_id' => $row->id]).'" class="add-opening-stock"><i class="fa fa-database"></i> '.__('lang_v1.add_edit_opening_stock').'</a></li>';
-                        }
-
-                        if (auth()->user()->can('product.view')) {
-                            $html .=
-                            '<li><a href="'.action([\App\Http\Controllers\ProductController::class, 'productStockHistory'], [$row->id]).'"><i class="fas fa-history"></i> '.__('lang_v1.product_stock_history').'</a></li>';
-                        }
-
-                        if (auth()->user()->can('product.create')) {
-                            if ($selling_price_group_count > 0) {
-                                $html .=
-                                '<li><a href="'.action([\App\Http\Controllers\ProductController::class, 'addSellingPrices'], [$row->id]).'"><i class="fas fa-money-bill-alt"></i> '.__('lang_v1.add_selling_price_group_prices').'</a></li>';
-                            }
-
-                            $html .=
-                                '<li><a href="'.action([\App\Http\Controllers\ProductController::class, 'create'], ['d' => $row->id]).'"><i class="fa fa-copy"></i> '.__('lang_v1.duplicate_product').'</a></li>';
-                        }
-
-                        if (! empty($row->media->first())) {
-                            $html .=
-                                '<li><a href="'.$row->media->first()->display_url.'" download="'.$row->media->first()->display_name.'"><i class="fas fa-download"></i> '.__('lang_v1.product_brochure').'</a></li>';
-                        }
-
-                        $html .= '</ul></div>';
-
-                        return $html;
-                    }
-                )
-                ->editColumn('product', function ($row) use ($is_woocommerce) {
-                    $product = $row->is_inactive == 1 ? $row->product.' <span class="label bg-gray">'.__('lang_v1.inactive').'</span>' : $row->product;
-
-                    $product = $row->not_for_selling == 1 ? $product.' <span class="label bg-gray">'.__('lang_v1.not_for_selling').
-                        '</span>' : $product;
-
-                    if ($is_woocommerce && ! $row->woocommerce_disable_sync) {
-                        $product = $product.'<br><i class="fab fa-wordpress"></i>';
-                    }
-
-                    return $product;
-                })
-                ->editColumn('image', function ($row) {
-                    return '<div style="display: flex;"><img src="'.$row->image_url.'" alt="Product image" class="product-thumbnail-small"></div>';
-                })
-                ->editColumn('type', '@lang("lang_v1." . $type)')
-                ->addColumn('mass_delete', function ($row) {
-                    return  '<input type="checkbox" class="row-select" value="'.$row->id.'">';
-                })
-                ->editColumn('current_stock', function ($row) {
-                    if ($row->enable_stock) {
-                        $stock = $this->productUtil->num_f($row->current_stock, false, null, true);
-
-                        return $stock.' '.$row->unit;
-                    } else {
-                        return '--';
-                    }
-                })
-                ->addColumn(
-                    'purchase_price',
-                    '<div style="white-space: nowrap;">@format_currency($min_purchase_price) @if($max_purchase_price != $min_purchase_price && $type == "variable") -  @format_currency($max_purchase_price)@endif </div>'
-                )
-                ->addColumn(
-                    'selling_price',
-                    '<div style="white-space: nowrap;">@format_currency($min_price) @if($max_price != $min_price && $type == "variable") -  @format_currency($max_price)@endif </div>'
-                )
-                ->filterColumn('products.sku', function ($query, $keyword) {
-                    $query->whereHas('variations', function ($q) use ($keyword) {
-                        $q->where('sub_sku', 'like', "%{$keyword}%");
-                    })
-                    ->orWhere('products.sku', 'like', "%{$keyword}%");
-                })
-                ->setRowAttr([
-                    'data-href' => function ($row) {
-                        if (auth()->user()->can('product.view')) {
-                            return  action([\App\Http\Controllers\ProductController::class, 'view'], [$row->id]);
-                        } else {
-                            return '';
-                        }
-                    }, ])
-                ->rawColumns(['action', 'image', 'mass_delete', 'product', 'selling_price', 'purchase_price', 'category', 'current_stock'])
-                ->make(true);
-        }
-
-        $rack_enabled = (request()->session()->get('business.enable_racks') || request()->session()->get('business.enable_row') || request()->session()->get('business.enable_position'));
-
-        $categories = Category::forDropdown($business_id, 'product');
-
-        $brands = Brands::forDropdown($business_id);
-
-        $units = Unit::forDropdown($business_id);
-
-        $tax_dropdown = TaxRate::forBusinessDropdown($business_id, false);
-        $taxes = $tax_dropdown['tax_rates'];
-
-        $business_locations = BusinessLocation::forDropdown($business_id);
-        $business_locations->prepend(__('lang_v1.none'), 'none');
-
-        if ($this->moduleUtil->isModuleInstalled('Manufacturing') && (auth()->user()->can('superadmin') || $this->moduleUtil->hasThePermissionInSubscription($business_id, 'manufacturing_module'))) {
-            $show_manufacturing_data = true;
-        } else {
-            $show_manufacturing_data = false;
-        }
-
-        //list product screen filter from module
-        $pos_module_data = $this->moduleUtil->getModuleData('get_filters_for_list_product_screen');
-
-        $is_admin = $this->productUtil->is_admin(auth()->user());
-
-        return view('product.index')
-            ->with(compact(
-                'rack_enabled',
-                'categories',
-                'brands',
-                'units',
-                'taxes',
-                'business_locations',
-                'show_manufacturing_data',
-                'pos_module_data',
-                'is_woocommerce',
-                'is_admin'
-            ));
+    public function index(Request $request)
+{
+    if (!auth()->user()->can('product.view')) {
+        abort(403, 'Unauthorized action.');
     }
+
+    if ($request->ajax() && $request->input('type') == 'raw_material') {
+        $query = Product::with(['unit', 'brand', 'product_locations'])
+                        ->whereNull('type')  // Assuming raw materials are those with null type
+                        ->select('products.id', 'products.name', 'products.alert_quantity', 'products.unit_id', 'products.brand_id', 'products.enable_stock');
+
+        $products = $query->get();
+
+        $data = Datatables::of($products)
+            ->addColumn('unit', function ($row) {
+                return $row->unit->short_name ?? '';
+            })
+            ->addColumn('brand', function ($row) {
+                return $row->brand->name ?? '';
+            })
+            ->addColumn('product_locations', function ($row) {
+                return $row->product_locations->pluck('name')->implode(', ');
+            })
+            ->addColumn('enable_stock', function ($row) {
+                return $row->enable_stock ? __('messages.yes') : __('messages.no');
+            })
+            ->addColumn('action', function ($row) {
+                $html = '<div class="btn-group">';
+                if (auth()->user()->can("product.update")) {
+                    $html .= '<a href="' . action([\App\Http\Controllers\ProductController::class, 'edit'], [$row->id]) . '" class="btn btn-xs btn-primary"><i class="fa fa-edit"></i> ' . __("messages.edit") . '</a>';
+                }
+                if (auth()->user()->can("product.delete")) {
+                    $html .= '<button data-href="' . action([\App\Http\Controllers\ProductController::class, 'destroy'], [$row->id]) . '" class="btn btn-xs btn-danger delete_product_button"><i class="fa fa-trash"></i> ' . __("messages.delete") . '</button>';
+                }
+                $html .= '</div>';
+                return $html;
+            })
+            ->rawColumns(['action', 'enable_stock']);
+
+        $response = $data->make(true);
+        
+        // Add debug information to the response
+        $debugInfo = [
+            'total_raw_materials' => $products->count(),
+            'sql_query' => $query->toSql(),
+            'sql_bindings' => $query->getBindings()
+        ];
+
+        // Merge debug info into the existing response data
+        $responseData = json_decode($response->getContent(), true);
+        $responseData['debug_info'] = $debugInfo;
+
+        return response()->json($responseData);
+    }
+
+    return view('product.index');
+}
 
     /**
      * Show the form for creating a new resource.
@@ -441,30 +209,41 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        if (! auth()->user()->can('product.create')) {
+        if (!auth()->user()->can('product.create')) {
             abort(403, 'Unauthorized action.');
         }
+
         try {
             $business_id = $request->session()->get('user.business_id');
-            $form_fields = ['name', 'brand_id', 'unit_id', 'category_id', 'tax', 'type', 'barcode_type', 'sku', 'alert_quantity', 'tax_type', 'weight', 'product_description', 'sub_unit_ids', 'preparation_time_in_minutes', 'product_custom_field1', 'product_custom_field2', 'product_custom_field3', 'product_custom_field4', 'product_custom_field5', 'product_custom_field6', 'product_custom_field7', 'product_custom_field8', 'product_custom_field9', 'product_custom_field10', 'product_custom_field11', 'product_custom_field12', 'product_custom_field13', 'product_custom_field14', 'product_custom_field15', 'product_custom_field16', 'product_custom_field17', 'product_custom_field18', 'product_custom_field19', 'product_custom_field20',];
+            $form_fields = [
+                'name', 'brand_id', 'unit_id', 'category_id', 'tax', 'barcode_type', 'sku',
+                'alert_quantity', 'tax_type', 'weight', 'product_description', 'sub_unit_ids',
+                'preparation_time_in_minutes', 'product_custom_field1', 'product_custom_field2',
+                'product_custom_field3', 'product_custom_field4', 'product_custom_field5',
+                'product_custom_field6', 'product_custom_field7', 'product_custom_field8',
+                'product_custom_field9', 'product_custom_field10', 'product_custom_field11',
+                'product_custom_field12', 'product_custom_field13', 'product_custom_field14',
+                'product_custom_field15', 'product_custom_field16', 'product_custom_field17',
+                'product_custom_field18', 'product_custom_field19', 'product_custom_field20',
+            ];
 
             $module_form_fields = $this->moduleUtil->getModuleFormField('product_form_fields');
-            if (! empty($module_form_fields)) {
+            if (!empty($module_form_fields)) {
                 $form_fields = array_merge($form_fields, $module_form_fields);
             }
 
             $product_details = $request->only($form_fields);
             $product_details['business_id'] = $business_id;
             $product_details['created_by'] = $request->session()->get('user.id');
+            
+            $product_details['enable_stock'] = (!empty($request->input('enable_stock')) && $request->input('enable_stock') == 1) ? 1 : 0;
+            $product_details['not_for_selling'] = (!empty($request->input('not_for_selling')) && $request->input('not_for_selling') == 1) ? 1 : 0;
 
-            $product_details['enable_stock'] = (! empty($request->input('enable_stock')) && $request->input('enable_stock') == 1) ? 1 : 0;
-            $product_details['not_for_selling'] = (! empty($request->input('not_for_selling')) && $request->input('not_for_selling') == 1) ? 1 : 0;
-
-            if (! empty($request->input('sub_category_id'))) {
+            if (!empty($request->input('sub_category_id'))) {
                 $product_details['sub_category_id'] = $request->input('sub_category_id');
             }
 
-            if (! empty($request->input('secondary_unit_id'))) {
+            if (!empty($request->input('secondary_unit_id'))) {
                 $product_details['secondary_unit_id'] = $request->input('secondary_unit_id');
             }
 
@@ -472,17 +251,17 @@ class ProductController extends Controller
                 $product_details['sku'] = ' ';
             }
 
-            if (! empty($product_details['alert_quantity'])) {
+            if (!empty($product_details['alert_quantity'])) {
                 $product_details['alert_quantity'] = $this->productUtil->num_uf($product_details['alert_quantity']);
             }
 
             $expiry_enabled = $request->session()->get('business.enable_product_expiry');
-            if (! empty($request->input('expiry_period_type')) && ! empty($request->input('expiry_period')) && ! empty($expiry_enabled) && ($product_details['enable_stock'] == 1)) {
+            if (!empty($request->input('expiry_period_type')) && !empty($request->input('expiry_period')) && !empty($expiry_enabled) && ($product_details['enable_stock'] == 1)) {
                 $product_details['expiry_period_type'] = $request->input('expiry_period_type');
                 $product_details['expiry_period'] = $this->productUtil->num_uf($request->input('expiry_period'));
             }
 
-            if (! empty($request->input('enable_sr_no')) && $request->input('enable_sr_no') == 1) {
+            if (!empty($request->input('enable_sr_no')) && $request->input('enable_sr_no') == 1) {
                 $product_details['enable_sr_no'] = 1;
             }
 
@@ -490,7 +269,7 @@ class ProductController extends Controller
             $product_details['image'] = $this->productUtil->uploadFile($request, 'image', config('constants.product_img_path'), 'image');
             $common_settings = session()->get('business.common_settings');
 
-            $product_details['warranty_id'] = ! empty($request->input('warranty_id')) ? $request->input('warranty_id') : null;
+            $product_details['warranty_id'] = !empty($request->input('warranty_id')) ? $request->input('warranty_id') : null;
 
             DB::beginTransaction();
 
@@ -506,61 +285,37 @@ class ProductController extends Controller
 
             //Add product locations
             $product_locations = $request->input('product_locations');
-            if (! empty($product_locations)) {
+            if (!empty($product_locations)) {
                 $product->product_locations()->sync($product_locations);
             }
 
-            if ($product->type == 'single') {
-                $this->productUtil->createSingleProductVariation($product->id, $product->sku, $request->input('single_dpp'), $request->input('single_dpp_inc_tax'), $request->input('profit_percent'), $request->input('single_dsp'), $request->input('single_dsp_inc_tax'));
-            } elseif ($product->type == 'variable') {
-                if (! empty($request->input('product_variation'))) {
-                    $input_variations = $request->input('product_variation');
-                    
-                    $this->productUtil->createVariableProductVariations($product->id, $input_variations, $request->input('sku_type'));
-                }
-            } elseif ($product->type == 'combo') {
-
-                //Create combo_variations array by combining variation_id and quantity.
-                $combo_variations = [];
-                if (! empty($request->input('composition_variation_id'))) {
-                    $composition_variation_id = $request->input('composition_variation_id');
-                    $quantity = $request->input('quantity');
-                    $unit = $request->input('unit');
-
-                    foreach ($composition_variation_id as $key => $value) {
-                        $combo_variations[] = [
-                            'variation_id' => $value,
-                            'quantity' => $this->productUtil->num_uf($quantity[$key]),
-                            'unit_id' => $unit[$key],
-                        ];
-                    }
-                }
-
-                $this->productUtil->createSingleProductVariation($product->id, $product->sku, $request->input('item_level_purchase_price_total'), $request->input('purchase_price_inc_tax'), $request->input('profit_percent'), $request->input('selling_price'), $request->input('selling_price_inc_tax'), $combo_variations);
-            }
+            // Create product variation and variation
+            $this->createProductVariationAndVariation($product, $request);
 
             //Add product racks details.
             $product_racks = $request->get('product_racks', null);
-            if (! empty($product_racks)) {
+            if (!empty($product_racks)) {
                 $this->productUtil->addRackDetails($business_id, $product->id, $product_racks);
             }
 
             //Set Module fields
-            if (! empty($request->input('has_module_data'))) {
+            if (!empty($request->input('has_module_data'))) {
                 $this->moduleUtil->getModuleData('after_product_saved', ['product' => $product, 'request' => $request]);
             }
 
             Media::uploadMedia($product->business_id, $product, $request, 'product_brochure', true);
 
             DB::commit();
-            $output = ['success' => 1,
+            $output = [
+                'success' => 1,
                 'msg' => __('product.product_added_success'),
             ];
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
 
-            $output = ['success' => 0,
+            $output = [
+                'success' => 0,
                 'msg' => __('messages.something_went_wrong'),
             ];
 
@@ -568,19 +323,55 @@ class ProductController extends Controller
         }
 
         if ($request->input('submit_type') == 'submit_n_add_opening_stock') {
-            return redirect()->action([\App\Http\Controllers\OpeningStockController::class, 'add'],
-                ['product_id' => $product->id]
-            );
+            return redirect()->action([\App\Http\Controllers\OpeningStockController::class, 'add'], ['product_id' => $product->id]);
         } elseif ($request->input('submit_type') == 'submit_n_add_selling_prices') {
-            return redirect()->action([\App\Http\Controllers\ProductController::class, 'addSellingPrices'],
-                [$product->id]
-            );
+            return redirect()->action([\App\Http\Controllers\ProductController::class, 'addSellingPrices'], [$product->id]);
         } elseif ($request->input('submit_type') == 'save_n_add_another') {
-            return redirect()->action([\App\Http\Controllers\ProductController::class, 'create']
-            )->with('status', $output);
+            return redirect()->action([\App\Http\Controllers\ProductController::class, 'create'])->with('status', $output);
         }
 
         return redirect('products')->with('status', $output);
+    }
+
+    public function getProductStock($id)
+    {
+        $product = Product::findOrFail($id);
+        $variation = $product->variations->first();
+        $current_stock = 0;
+        $unit = $product->unit->short_name;
+
+        if ($product->enable_stock == 1 && $variation) {
+            $current_stock = $variation->variation_location_details->sum('qty_available');
+        }
+
+        return response()->json([
+            'current_stock' => number_format($current_stock, 2),
+            'unit' => $unit
+        ]);
+    }
+
+    private function createProductVariationAndVariation($product, $request)
+    {
+        // Create product variation
+        $product_variation = $product->product_variations()->create([
+            'name' => 'DUMMY', // You might want to set this to a more meaningful value
+            'is_dummy' => 1
+        ]);
+
+        // Create variation
+        $variation_data = [
+            'name' => 'DUMMY', // You might want to set this to a more meaningful value
+            'product_id' => $product->id,
+            'sub_sku' => $product->sku,
+            'product_variation_id' => $product_variation->id,
+            'default_purchase_price' => $this->productUtil->num_uf($request->input('single_dpp')),
+            'dpp_inc_tax' => $this->productUtil->num_uf($request->input('single_dpp_inc_tax')),
+            'profit_percent' => $this->productUtil->num_uf($request->input('profit_percent')),
+            'default_sell_price' => $this->productUtil->num_uf($request->input('single_dsp')),
+            'sell_price_inc_tax' => $this->productUtil->num_uf($request->input('single_dsp_inc_tax'))
+        ];
+
+        $product_variation->variations()->create($variation_data);
     }
 
     /**
@@ -670,6 +461,237 @@ class ProductController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
+    // public function update(Request $request, $id)
+    // {
+    //     if (! auth()->user()->can('product.update')) {
+    //         abort(403, 'Unauthorized action.');
+    //     }
+
+    //     try {
+    //         $business_id = $request->session()->get('user.business_id');
+    //         $product_details = $request->only(['name', 'brand_id', 'unit_id', 'category_id', 'tax', 'barcode_type', 'sku', 'alert_quantity', 'tax_type', 'weight', 'product_description', 'sub_unit_ids', 'preparation_time_in_minutes', 'product_custom_field1', 'product_custom_field2', 'product_custom_field3', 'product_custom_field4', 'product_custom_field5', 'product_custom_field6', 'product_custom_field7', 'product_custom_field8', 'product_custom_field9', 'product_custom_field10', 'product_custom_field11', 'product_custom_field12', 'product_custom_field13', 'product_custom_field14', 'product_custom_field15', 'product_custom_field16', 'product_custom_field17', 'product_custom_field18', 'product_custom_field19', 'product_custom_field20',]);
+
+    //         DB::beginTransaction();
+
+    //         $product = Product::where('business_id', $business_id)
+    //                             ->where('id', $id)
+    //                             ->with(['product_variations'])
+    //                             ->first();
+
+    //         $module_form_fields = $this->moduleUtil->getModuleFormField('product_form_fields');
+    //         if (! empty($module_form_fields)) {
+    //             foreach ($module_form_fields as $column) {
+    //                 $product->$column = $request->input($column);
+    //             }
+    //         }
+
+    //         $product->name = $product_details['name'];
+    //         $product->brand_id = $product_details['brand_id'];
+    //         $product->unit_id = $product_details['unit_id'];
+    //         $product->category_id = $product_details['category_id'];
+    //         $product->tax = $product_details['tax'];
+    //         $product->sku = $product_details['sku'] ?? $product->sku;
+    //         $product->barcode_type = $product_details['barcode_type'] ?? $product->barcode_type;
+    //         $product->alert_quantity = ! empty($product_details['alert_quantity']) ? $this->productUtil->num_uf($product_details['alert_quantity']) : $product_details['alert_quantity'];
+    //         $product->tax_type = $product_details['tax_type'];
+    //         $product->weight = $product_details['weight'];
+    //         $product->product_custom_field1 = $product_details['product_custom_field1'] ?? '';
+    //         $product->product_custom_field2 = $product_details['product_custom_field2'] ?? '';
+    //         $product->product_custom_field3 = $product_details['product_custom_field3'] ?? '';
+    //         $product->product_custom_field4 = $product_details['product_custom_field4'] ?? '';
+    //         $product->product_custom_field5 = $product_details['product_custom_field5'] ?? '';
+    //         $product->product_custom_field6 = $product_details['product_custom_field6'] ?? '';
+    //         $product->product_custom_field7 = $product_details['product_custom_field7'] ?? '';
+    //         $product->product_custom_field8 = $product_details['product_custom_field8'] ?? '';
+    //         $product->product_custom_field9 = $product_details['product_custom_field9'] ?? '';
+    //         $product->product_custom_field10 = $product_details['product_custom_field10'] ?? '';
+    //         $product->product_custom_field11 = $product_details['product_custom_field11'] ?? '';
+    //         $product->product_custom_field12 = $product_details['product_custom_field12'] ?? '';
+    //         $product->product_custom_field13 = $product_details['product_custom_field13'] ?? '';
+    //         $product->product_custom_field14 = $product_details['product_custom_field14'] ?? '';
+    //         $product->product_custom_field15 = $product_details['product_custom_field15'] ?? '';
+    //         $product->product_custom_field16 = $product_details['product_custom_field16'] ?? '';
+    //         $product->product_custom_field17 = $product_details['product_custom_field17'] ?? '';
+    //         $product->product_custom_field18 = $product_details['product_custom_field18'] ?? '';
+    //         $product->product_custom_field19 = $product_details['product_custom_field19'] ?? '';
+    //         $product->product_custom_field20 = $product_details['product_custom_field20'] ?? '';
+
+    //         $product->product_description = $product_details['product_description'];
+    //         $product->sub_unit_ids = ! empty($product_details['sub_unit_ids']) ? $product_details['sub_unit_ids'] : null;
+    //         $product->preparation_time_in_minutes = $product_details['preparation_time_in_minutes'];
+    //         $product->warranty_id = ! empty($request->input('warranty_id')) ? $request->input('warranty_id') : null;
+    //         $product->secondary_unit_id = ! empty($request->input('secondary_unit_id')) ? $request->input('secondary_unit_id') : null;
+
+    //         if (! empty($request->input('enable_stock')) && $request->input('enable_stock') == 1) {
+    //             $product->enable_stock = 1;
+    //         } else {
+    //             $product->enable_stock = 0;
+    //         }
+
+    //         $product->not_for_selling = (! empty($request->input('not_for_selling')) && $request->input('not_for_selling') == 1) ? 1 : 0;
+
+    //         if (! empty($request->input('sub_category_id'))) {
+    //             $product->sub_category_id = $request->input('sub_category_id');
+    //         } else {
+    //             $product->sub_category_id = null;
+    //         }
+
+    //         $expiry_enabled = $request->session()->get('business.enable_product_expiry');
+    //         if (! empty($expiry_enabled)) {
+    //             if (! empty($request->input('expiry_period_type')) && ! empty($request->input('expiry_period')) && ($product->enable_stock == 1)) {
+    //                 $product->expiry_period_type = $request->input('expiry_period_type');
+    //                 $product->expiry_period = $this->productUtil->num_uf($request->input('expiry_period'));
+    //             } else {
+    //                 $product->expiry_period_type = null;
+    //                 $product->expiry_period = null;
+    //             }
+    //         }
+
+    //         if (! empty($request->input('enable_sr_no')) && $request->input('enable_sr_no') == 1) {
+    //             $product->enable_sr_no = 1;
+    //         } else {
+    //             $product->enable_sr_no = 0;
+    //         }
+
+    //         //upload document
+    //         $file_name = $this->productUtil->uploadFile($request, 'image', config('constants.product_img_path'), 'image');
+    //         if (! empty($file_name)) {
+
+    //             //If previous image found then remove
+    //             if (! empty($product->image_path) && file_exists($product->image_path)) {
+    //                 unlink($product->image_path);
+    //             }
+
+    //             $product->image = $file_name;
+    //             //If product image is updated update woocommerce media id
+    //             if (! empty($product->woocommerce_media_id)) {
+    //                 $product->woocommerce_media_id = null;
+    //             }
+    //         }
+
+    //         $product->save();
+    //         $product->touch();
+
+    //         event(new ProductsCreatedOrModified($product, 'updated'));
+
+    //         //Add product locations
+    //         $product_locations = ! empty($request->input('product_locations')) ?
+    //                             $request->input('product_locations') : [];
+
+    //         $permitted_locations = auth()->user()->permitted_locations();
+    //         //If not assigned location exists don't remove it
+    //         if ($permitted_locations != 'all') {
+    //             $existing_product_locations = $product->product_locations()->pluck('id');
+
+    //             foreach ($existing_product_locations as $pl) {
+    //                 if (! in_array($pl, $permitted_locations)) {
+    //                     $product_locations[] = $pl;
+    //                 }
+    //             }
+    //         }
+
+    //         $product->product_locations()->sync($product_locations);
+
+    //         if ($product->type == 'single') {
+    //             $single_data = $request->only(['single_variation_id', 'single_dpp', 'single_dpp_inc_tax', 'single_dsp_inc_tax', 'profit_percent', 'single_dsp']);
+    //             $variation = Variation::find($single_data['single_variation_id']);
+
+    //             $variation->sub_sku = $product->sku;
+    //             $variation->default_purchase_price = $this->productUtil->num_uf($single_data['single_dpp']);
+    //             $variation->dpp_inc_tax = $this->productUtil->num_uf($single_data['single_dpp_inc_tax']);
+    //             $variation->profit_percent = $this->productUtil->num_uf($single_data['profit_percent']);
+    //             $variation->default_sell_price = $this->productUtil->num_uf($single_data['single_dsp']);
+    //             $variation->sell_price_inc_tax = $this->productUtil->num_uf($single_data['single_dsp_inc_tax']);
+    //             $variation->save();
+
+    //             Media::uploadMedia($product->business_id, $variation, $request, 'variation_images');
+    //         } elseif ($product->type == 'variable') {
+    //             //Update existing variations
+    //             $input_variations_edit = $request->get('product_variation_edit');
+    //             if (! empty($input_variations_edit)) {
+    //                 $this->productUtil->updateVariableProductVariations($product->id, $input_variations_edit,$request->input('sku_type'));
+    //             }
+
+    //             //Add new variations created.
+    //             $input_variations = $request->input('product_variation');
+    //             if (! empty($input_variations)) {
+    //                 $this->productUtil->createVariableProductVariations($product->id, $input_variations, $request->input('sku_type'));
+    //             }
+    //         } elseif ($product->type == 'combo') {
+
+    //             //Create combo_variations array by combining variation_id and quantity.
+    //             $combo_variations = [];
+    //             if (! empty($request->input('composition_variation_id'))) {
+    //                 $composition_variation_id = $request->input('composition_variation_id');
+    //                 $quantity = $request->input('quantity');
+    //                 $unit = $request->input('unit');
+
+    //                 foreach ($composition_variation_id as $key => $value) {
+    //                     $combo_variations[] = [
+    //                         'variation_id' => $value,
+    //                         'quantity' => $quantity[$key],
+    //                         'unit_id' => $unit[$key],
+    //                     ];
+    //                 }
+    //             }
+
+    //             $variation = Variation::find($request->input('combo_variation_id'));
+    //             $variation->sub_sku = $product->sku;
+    //             $variation->default_purchase_price = $this->productUtil->num_uf($request->input('item_level_purchase_price_total'));
+    //             $variation->dpp_inc_tax = $this->productUtil->num_uf($request->input('purchase_price_inc_tax'));
+    //             $variation->profit_percent = $this->productUtil->num_uf($request->input('profit_percent'));
+    //             $variation->default_sell_price = $this->productUtil->num_uf($request->input('selling_price'));
+    //             $variation->sell_price_inc_tax = $this->productUtil->num_uf($request->input('selling_price_inc_tax'));
+    //             $variation->combo_variations = $combo_variations;
+    //             $variation->save();
+    //         }
+
+    //         //Add product racks details.
+    //         $product_racks = $request->get('product_racks', null);
+    //         if (! empty($product_racks)) {
+    //             $this->productUtil->addRackDetails($business_id, $product->id, $product_racks);
+    //         }
+
+    //         $product_racks_update = $request->get('product_racks_update', null);
+    //         if (! empty($product_racks_update)) {
+    //             $this->productUtil->updateRackDetails($business_id, $product->id, $product_racks_update);
+    //         }
+
+    //         //Set Module fields
+    //         if (! empty($request->input('has_module_data'))) {
+    //             $this->moduleUtil->getModuleData('after_product_saved', ['product' => $product, 'request' => $request]);
+    //         }
+
+    //         Media::uploadMedia($product->business_id, $product, $request, 'product_brochure', true);
+
+    //         DB::commit();
+    //         $output = ['success' => 1,
+    //             'msg' => __('product.product_updated_success'),
+    //         ];
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+
+    //         $output = ['success' => 0,
+    //             'msg' => $e->getMessage(),
+    //         ];
+    //     }
+
+    //     if ($request->input('submit_type') == 'update_n_edit_opening_stock') {
+    //         return redirect()->action([\App\Http\Controllers\OpeningStockController::class, 'add'],
+    //             ['product_id' => $product->id]
+    //         );
+    //     } elseif ($request->input('submit_type') == 'submit_n_add_selling_prices') {
+    //         return redirect()->action([\App\Http\Controllers\ProductController::class, 'addSellingPrices'],
+    //             [$product->id]
+    //         );
+    //     } elseif ($request->input('submit_type') == 'save_n_add_another') {
+    //         return redirect()->action([\App\Http\Controllers\ProductController::class, 'create']
+    //         )->with('status', $output);
+    //     }
+
+    //     return redirect('products')->with('status', $output);
+    // }
     public function update(Request $request, $id)
     {
         if (! auth()->user()->can('product.update')) {
@@ -690,64 +712,31 @@ class ProductController extends Controller
             $module_form_fields = $this->moduleUtil->getModuleFormField('product_form_fields');
             if (! empty($module_form_fields)) {
                 foreach ($module_form_fields as $column) {
-                    $product->$column = $request->input($column);
+                    $product->$column = $request->input($column) !== '' ? $request->input($column) : null;
                 }
             }
 
-            $product->name = $product_details['name'];
-            $product->brand_id = $product_details['brand_id'];
-            $product->unit_id = $product_details['unit_id'];
-            $product->category_id = $product_details['category_id'];
-            $product->tax = $product_details['tax'];
-            $product->barcode_type = $product_details['barcode_type'];
-            $product->sku = $product_details['sku'];
-            $product->alert_quantity = ! empty($product_details['alert_quantity']) ? $this->productUtil->num_uf($product_details['alert_quantity']) : $product_details['alert_quantity'];
-            $product->tax_type = $product_details['tax_type'];
-            $product->weight = $product_details['weight'];
-            $product->product_custom_field1 = $product_details['product_custom_field1'] ?? '';
-            $product->product_custom_field2 = $product_details['product_custom_field2'] ?? '';
-            $product->product_custom_field3 = $product_details['product_custom_field3'] ?? '';
-            $product->product_custom_field4 = $product_details['product_custom_field4'] ?? '';
-            $product->product_custom_field5 = $product_details['product_custom_field5'] ?? '';
-            $product->product_custom_field6 = $product_details['product_custom_field6'] ?? '';
-            $product->product_custom_field7 = $product_details['product_custom_field7'] ?? '';
-            $product->product_custom_field8 = $product_details['product_custom_field8'] ?? '';
-            $product->product_custom_field9 = $product_details['product_custom_field9'] ?? '';
-            $product->product_custom_field10 = $product_details['product_custom_field10'] ?? '';
-            $product->product_custom_field11 = $product_details['product_custom_field11'] ?? '';
-            $product->product_custom_field12 = $product_details['product_custom_field12'] ?? '';
-            $product->product_custom_field13 = $product_details['product_custom_field13'] ?? '';
-            $product->product_custom_field14 = $product_details['product_custom_field14'] ?? '';
-            $product->product_custom_field15 = $product_details['product_custom_field15'] ?? '';
-            $product->product_custom_field16 = $product_details['product_custom_field16'] ?? '';
-            $product->product_custom_field17 = $product_details['product_custom_field17'] ?? '';
-            $product->product_custom_field18 = $product_details['product_custom_field18'] ?? '';
-            $product->product_custom_field19 = $product_details['product_custom_field19'] ?? '';
-            $product->product_custom_field20 = $product_details['product_custom_field20'] ?? '';
-
-            $product->product_description = $product_details['product_description'];
-            $product->sub_unit_ids = ! empty($product_details['sub_unit_ids']) ? $product_details['sub_unit_ids'] : null;
-            $product->preparation_time_in_minutes = $product_details['preparation_time_in_minutes'];
-            $product->warranty_id = ! empty($request->input('warranty_id')) ? $request->input('warranty_id') : null;
-            $product->secondary_unit_id = ! empty($request->input('secondary_unit_id')) ? $request->input('secondary_unit_id') : null;
-
-            if (! empty($request->input('enable_stock')) && $request->input('enable_stock') == 1) {
-                $product->enable_stock = 1;
-            } else {
-                $product->enable_stock = 0;
+            // Update fields, setting to null if not provided
+            foreach ($product_details as $key => $value) {
+                $product->$key = $value !== '' ? $value : null;
             }
 
-            $product->not_for_selling = (! empty($request->input('not_for_selling')) && $request->input('not_for_selling') == 1) ? 1 : 0;
+            // Handle numeric fields separately
+            $product->alert_quantity = $product_details['alert_quantity'] !== '' ? $this->productUtil->num_uf($product_details['alert_quantity']) : null;
+            $product->weight = $product_details['weight'] !== '' && $product_details['weight'] !== null ? $this->productUtil->num_uf($product_details['weight']) : null;
 
-            if (! empty($request->input('sub_category_id'))) {
-                $product->sub_category_id = $request->input('sub_category_id');
-            } else {
-                $product->sub_category_id = null;
-            }
+            $product->preparation_time_in_minutes = $request->input('preparation_time_in_minutes') !== '' ? $request->input('preparation_time_in_minutes') : null;
+            $product->warranty_id = $request->input('warranty_id') !== '' ? $request->input('warranty_id') : null;
+            $product->secondary_unit_id = $request->input('secondary_unit_id') !== '' ? $request->input('secondary_unit_id') : null;
+
+            $product->enable_stock = !empty($request->input('enable_stock')) && $request->input('enable_stock') == 1 ? 1 : 0;
+            $product->not_for_selling = (!empty($request->input('not_for_selling')) && $request->input('not_for_selling') == 1) ? 1 : 0;
+
+            $product->sub_category_id = !empty($request->input('sub_category_id')) ? $request->input('sub_category_id') : null;
 
             $expiry_enabled = $request->session()->get('business.enable_product_expiry');
-            if (! empty($expiry_enabled)) {
-                if (! empty($request->input('expiry_period_type')) && ! empty($request->input('expiry_period')) && ($product->enable_stock == 1)) {
+            if (!empty($expiry_enabled)) {
+                if (!empty($request->input('expiry_period_type')) && !empty($request->input('expiry_period')) && ($product->enable_stock == 1)) {
                     $product->expiry_period_type = $request->input('expiry_period_type');
                     $product->expiry_period = $this->productUtil->num_uf($request->input('expiry_period'));
                 } else {
@@ -756,24 +745,19 @@ class ProductController extends Controller
                 }
             }
 
-            if (! empty($request->input('enable_sr_no')) && $request->input('enable_sr_no') == 1) {
-                $product->enable_sr_no = 1;
-            } else {
-                $product->enable_sr_no = 0;
-            }
+            $product->enable_sr_no = !empty($request->input('enable_sr_no')) ? 1 : 0;
 
             //upload document
             $file_name = $this->productUtil->uploadFile($request, 'image', config('constants.product_img_path'), 'image');
-            if (! empty($file_name)) {
-
+            if (!empty($file_name)) {
                 //If previous image found then remove
-                if (! empty($product->image_path) && file_exists($product->image_path)) {
+                if (!empty($product->image_path) && file_exists($product->image_path)) {
                     unlink($product->image_path);
                 }
 
                 $product->image = $file_name;
                 //If product image is updated update woocommerce media id
-                if (! empty($product->woocommerce_media_id)) {
+                if (!empty($product->woocommerce_media_id)) {
                     $product->woocommerce_media_id = null;
                 }
             }
@@ -784,21 +768,18 @@ class ProductController extends Controller
             event(new ProductsCreatedOrModified($product, 'updated'));
 
             //Add product locations
-            $product_locations = ! empty($request->input('product_locations')) ?
+            $product_locations = !empty($request->input('product_locations')) ?
                                 $request->input('product_locations') : [];
-
             $permitted_locations = auth()->user()->permitted_locations();
             //If not assigned location exists don't remove it
             if ($permitted_locations != 'all') {
                 $existing_product_locations = $product->product_locations()->pluck('id');
-
                 foreach ($existing_product_locations as $pl) {
-                    if (! in_array($pl, $permitted_locations)) {
+                    if (!in_array($pl, $permitted_locations)) {
                         $product_locations[] = $pl;
                     }
                 }
             }
-
             $product->product_locations()->sync($product_locations);
 
             if ($product->type == 'single') {
@@ -817,20 +798,19 @@ class ProductController extends Controller
             } elseif ($product->type == 'variable') {
                 //Update existing variations
                 $input_variations_edit = $request->get('product_variation_edit');
-                if (! empty($input_variations_edit)) {
+                if (!empty($input_variations_edit)) {
                     $this->productUtil->updateVariableProductVariations($product->id, $input_variations_edit,$request->input('sku_type'));
                 }
 
                 //Add new variations created.
                 $input_variations = $request->input('product_variation');
-                if (! empty($input_variations)) {
+                if (!empty($input_variations)) {
                     $this->productUtil->createVariableProductVariations($product->id, $input_variations, $request->input('sku_type'));
                 }
             } elseif ($product->type == 'combo') {
-
                 //Create combo_variations array by combining variation_id and quantity.
                 $combo_variations = [];
-                if (! empty($request->input('composition_variation_id'))) {
+                if (!empty($request->input('composition_variation_id'))) {
                     $composition_variation_id = $request->input('composition_variation_id');
                     $quantity = $request->input('quantity');
                     $unit = $request->input('unit');
@@ -857,17 +837,17 @@ class ProductController extends Controller
 
             //Add product racks details.
             $product_racks = $request->get('product_racks', null);
-            if (! empty($product_racks)) {
+            if (!empty($product_racks)) {
                 $this->productUtil->addRackDetails($business_id, $product->id, $product_racks);
             }
 
             $product_racks_update = $request->get('product_racks_update', null);
-            if (! empty($product_racks_update)) {
+            if (!empty($product_racks_update)) {
                 $this->productUtil->updateRackDetails($business_id, $product->id, $product_racks_update);
             }
 
             //Set Module fields
-            if (! empty($request->input('has_module_data'))) {
+            if (!empty($request->input('has_module_data'))) {
                 $this->moduleUtil->getModuleData('after_product_saved', ['product' => $product, 'request' => $request]);
             }
 
@@ -1249,7 +1229,7 @@ class ProductController extends Controller
             $business_id = request()->session()->get('user.business_id');
             $not_for_selling = request()->get('not_for_selling', null);
             $price_group_id = request()->input('price_group', '');
-            $product_types = request()->get('product_types', []);
+            $product_types = request()->get('product_types', null);
 
             $search_fields = request()->get('search_fields', ['name', 'sku']);
             if (in_array('sku', $search_fields)) {
@@ -1470,7 +1450,7 @@ class ProductController extends Controller
             }
             $product_details = $request->only($form_fields);
 
-            $product_details['type'] = empty($product_details['type']) ? 'single' : $product_details['type'];
+            $product_details['type'] = empty($product_details['type']) ? NULL : $product_details['type'];
             $product_details['business_id'] = $business_id;
             $product_details['created_by'] = $request->session()->get('user.id');
             if (! empty($request->input('enable_stock')) && $request->input('enable_stock') == 1) {

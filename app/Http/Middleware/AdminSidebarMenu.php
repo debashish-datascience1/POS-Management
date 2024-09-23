@@ -144,12 +144,12 @@ class AdminSidebarMenu
                 auth()->user()->can('category.view') || auth()->user()->can('brand.create') ||
                 auth()->user()->can('unit.create') || auth()->user()->can('category.create')) {
                 $menu->dropdown(
-                    __('sale.products'),
+                    __('sale.raw_material'),
                     function ($sub) {
                         if (auth()->user()->can('product.view')) {
                             $sub->url(
                                 action([\App\Http\Controllers\ProductController::class, 'index']),
-                                __('lang_v1.list_products'),
+                                __('lang_v1.list_raw_materials'),
                                 ['icon' => '', 'active' => request()->segment(1) == 'products' && request()->segment(2) == '']
                             );
                         }
@@ -157,7 +157,7 @@ class AdminSidebarMenu
                         if (auth()->user()->can('product.create')) {
                             $sub->url(
                                 action([\App\Http\Controllers\ProductController::class, 'create']),
-                                __('product.add_product'),
+                                __('product.add_raw_material'),
                                 ['icon' => '', 'active' => request()->segment(1) == 'products' && request()->segment(2) == 'create']
                             );
                         }
@@ -183,7 +183,7 @@ class AdminSidebarMenu
                             );
                             $sub->url(
                                 action([\App\Http\Controllers\ImportProductsController::class, 'index']),
-                                __('product.import_products'),
+                                __('product.import_raw_material'),
                                 ['icon' => '', 'active' => request()->segment(1) == 'import-products']
                             );
                         }
@@ -307,7 +307,7 @@ class AdminSidebarMenu
                             $sub->url(
                                 action([\App\Http\Controllers\PackingController::class, 'index']),
                                 __('lang_v1.packing'),
-                                ['icon' => '', 'active' => request()->is('packing*')]
+                                ['icon' => '', 'active' => request()->is('production/packing*')]
                             );
                         }
                     },

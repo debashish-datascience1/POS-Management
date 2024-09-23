@@ -36,6 +36,7 @@ return [
     'grand_total' => 'Grand Total',
     'add_purchase' => 'Add Purchase',
     'purchase_date' => 'Purchase Date',
+    'subtotal' => 'Subtotal',
     'purchase_quantity' => 'Purchase Quantity',
     'unit_cost_before_tax' => 'Unit Cost (Before Tax)',
     'subtotal_before_tax' => 'Subtotal (Before Tax)',
