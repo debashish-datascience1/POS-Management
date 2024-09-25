@@ -27,8 +27,10 @@
                         <th>@lang('lang_v1.product')</th>
                         <th>@lang('lang_v1.product_output')</th>
                         <th>@lang('lang_v1.mix')</th>
-                        <th>@lang('lang_v1.packing')</th>
+                        <th>@lang('lang_v1.jar')</th>
+                        <th>@lang('lang_v1.packet')</th>
                         <th>@lang('lang_v1.total')</th>
+                        <th>@lang('lang_v1.grand_total')</th>
                         <th>@lang('messages.action')</th>
                     </tr>
                 </thead>
@@ -53,8 +55,10 @@
                 { data: 'product_id', name: 'product_id' },
                 { data: 'product_output', name: 'product_output' },
                 { data: 'mix', name: 'mix' },
-                { data: 'packing', name: 'packing' },
+                { data: 'jar', name: 'jar' },
+                { data: 'packet', name: 'packet' },
                 { data: 'total', name: 'total' },
+                { data: 'grand_total', name: 'grand_total' },
                 { data: 'action', name: 'action', orderable: false, searchable: false },
             ],
         });

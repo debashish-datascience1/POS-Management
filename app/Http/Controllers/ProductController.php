@@ -1222,6 +1222,7 @@ class ProductController extends Controller
     public function getProducts()
     {
         if (request()->ajax()) {
+            \Log::info('Search parameters:', request()->all());
             $search_term = request()->input('term', '');
             $location_id = request()->input('location_id', null);
             $check_qty = request()->input('check_qty', false);

@@ -9,7 +9,27 @@ class Packing extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['business_id', 'product_id', 'product_output', 'mix', 'packing', 'total', 'date'];
+    protected $fillable = [
+        'business_id',
+        'product_id',
+        'product_output',
+        'mix',
+        'jar',
+        'packet',
+        'total',
+        'grand_total',
+        'date'
+    ];
+
+    protected $casts = [
+        'jar' => 'array',
+        'packet' => 'array',
+        'date' => 'date',
+        'product_output' => 'integer',
+        'mix' => 'integer',
+        'total' => 'float',
+        'grand_total' => 'float',
+    ];
 
     public function business()
     {
@@ -21,13 +41,23 @@ class Packing extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function setPackingAttribute($value)
+    public function setJarAttribute($value)
     {
-        $this->attributes['packing'] = is_array($value) ? implode(',', $value) : $value;
+        $this->attributes['jar'] = json_encode($value);
     }
 
-    public function getPackingAttribute($value)
+    public function getJarAttribute($value)
     {
-        return explode(',', $value);
+        return json_decode($value, true) ?? [];
+    }
+
+    public function setPacketAttribute($value)
+    {
+        $this->attributes['packet'] = json_encode($value);
+    }
+
+    public function getPacketAttribute($value)
+    {
+        return json_decode($value, true) ?? [];
     }
 }

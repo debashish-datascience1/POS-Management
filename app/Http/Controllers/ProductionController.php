@@ -140,6 +140,15 @@ class ProductionController extends Controller
 
             $business_id = $request->session()->get('user.business_id');
 
+            // Check if the location exists in variation_location_details
+            $locationExists = VariationLocationDetails::where('product_id', $validated['product_id'])
+                ->where('location_id', $validated['location_id'])
+                ->exists();
+
+            if (!$locationExists) {
+                throw new \Exception("Please purchase raw materials for this Business Location first.");
+            }
+
             DB::beginTransaction();
 
             $production_unit = new ProductionUnit();
@@ -175,16 +184,24 @@ class ProductionController extends Controller
                 'success' => true,
                 'msg' => __("production.production_add_success")
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
             Log::error('ProductionController@store: ' . $e->getMessage());
             $output = [
                 'success' => false,
-                'msg' => __("messages.something_went_wrong")
+                'msg' => $e->getMessage()
             ];
         }
 
-        return response()->json($output);
+        if ($request->ajax()) {
+            return response()->json($output);
+        } else {
+            if ($output['success']) {
+                return redirect('production/unit')->with('status', $output);
+            } else {
+                return redirect()->back()->withInput()->with('status', $output);
+            }
+        }
     }
 
     public function edit($id)
@@ -223,6 +240,15 @@ class ProductionController extends Controller
             $business_id = $request->session()->get('user.business_id');
             $production_unit = ProductionUnit::where('business_id', $business_id)->findOrFail($id);
 
+            // Check if the location exists in variation_location_details
+            $locationExists = VariationLocationDetails::where('product_id', $validated['product_id'])
+                ->where('location_id', $validated['location_id'])
+                ->exists();
+
+            if (!$locationExists) {
+                throw new \Exception("Please purchase raw materials for this Business Location first.");
+            }
+
             DB::beginTransaction();
 
             // Restore the original stock
@@ -244,18 +270,26 @@ class ProductionController extends Controller
                 'success' => true,
                 'msg' => __("production.production_update_success")
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
             Log::error('ProductionController@update: ' . $e->getMessage());
             $output = [
                 'success' => false,
-                'msg' => __("messages.something_went_wrong")
+                'msg' => $e->getMessage()
             ];
         }
 
-        return response()->json($output);
+        if ($request->ajax()) {
+            return response()->json($output);
+        } else {
+            if ($output['success']) {
+                return redirect('production/unit')->with('status', $output);
+            } else {
+                return redirect()->back()->withInput()->with('status', $output);
+            }
+        }
     }
-
+    
     public function destroy($id)
     {
         if (!auth()->user()->can('production.delete')) {
@@ -277,7 +311,7 @@ class ProductionController extends Controller
 
             $output = [
                 'success' => true,
-                'msg' => __("production.production_delete_success")
+                'msg' => __("lang_v1.production_delete_success")
             ];
         } catch (Exception $e) {
             DB::rollBack();
