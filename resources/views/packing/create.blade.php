@@ -11,22 +11,29 @@
     @component('components.widget', ['class' => 'box-primary'])
         {!! Form::open(['url' => action([\App\Http\Controllers\PackingController::class, 'store']), 'method' => 'post', 'id' => 'packing_form' ]) !!}
         <div class="row">
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <div class="form-group">
                     {!! Form::label('date', __('messages.date') . ':*') !!}
                     {!! Form::date('date', \Carbon\Carbon::now(), ['class' => 'form-control', 'required']); !!}
                 </div>
             </div>
-            <div class="col-sm-4">
+            <div class="col-sm-3">
+                <div class="form-group">
+                    {!! Form::label('location_id', __('purchase.business_location').':*') !!}
+                    @show_tooltip(__('tooltip.purchase_location'))
+                    {!! Form::select('location_id', $business_locations, $default_location, ['class' => 'form-control select2', 'placeholder' => __('messages.please_select'), 'required'], $bl_attributes); !!}
+                </div>
+            </div>
+            <div class="col-sm-3">
                 <div class="form-group">
                     {!! Form::label('product_id', __('lang_v1.product') . ':*') !!}
                     {!! Form::select('product_id', $products, null, ['class' => 'form-control select2', 'placeholder' => __('messages.please_select'), 'required', 'id' => 'product_id']); !!}
                 </div>
             </div>
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <div class="form-group">
                     {!! Form::label('product_output', __('lang_v1.product_output') . ':') !!}
-                    {!! Form::number('product_output', null, ['class' => 'form-control', 'readonly', 'id' => 'product_output']); !!}
+                    {!! Form::number('product_output', null, ['class' => 'form-control', 'id' => 'product_output']); !!}
                 </div>
             </div>
         </div>
@@ -133,9 +140,26 @@
 
         $('#product_id').change(function(){
             var productId = $(this).val();
-            if(productId) {
+            var locationId = $('#location_id').val();
+            if(productId && locationId) {
                 $.ajax({
-                    url: '/get-product-output/' + productId,
+                    url: '/get-product-output/' + locationId + '/' + productId,
+                    type: "GET",
+                    dataType: "json",
+                    success:function(data) {
+                        $('#product_output').val(data.raw_material);
+                        calculateTotal();
+                    }
+                });
+            }
+        });
+
+        $('#location_id').change(function(){
+            var productId = $('#product_id').val();
+            var locationId = $(this).val();
+            if(productId && locationId) {
+                $.ajax({
+                    url: '/get-product-output/' + locationId + '/' + productId,
                     type: "GET",
                     dataType: "json",
                     success:function(data) {

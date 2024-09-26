@@ -11,22 +11,29 @@
     @component('components.widget', ['class' => 'box-primary'])
         {!! Form::model($packing, ['url' => action([\App\Http\Controllers\PackingController::class, 'update'], [$packing->id]), 'method' => 'put', 'id' => 'packing_edit_form' ]) !!}
         <div class="row">
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <div class="form-group">
                     {!! Form::label('date', __('messages.date') . ':*') !!}
                     {!! Form::date('date', null, ['class' => 'form-control', 'required']); !!}
                 </div>
             </div>
-            <div class="col-sm-4">
+            <div class="col-sm-3">
+                <div class="form-group">
+                    {!! Form::label('location_id', __('purchase.business_location').':*') !!}
+                    @show_tooltip(__('tooltip.purchase_location'))
+                    {!! Form::select('location_id', $business_locations, $default_location, ['class' => 'form-control select2', 'placeholder' => __('messages.please_select'), 'required'], $bl_attributes); !!}
+                </div>
+            </div>
+            <div class="col-sm-3">
                 <div class="form-group">
                     {!! Form::label('product_id', __('lang_v1.product') . ':*') !!}
                     {!! Form::select('product_id', $products, null, ['class' => 'form-control select2', 'placeholder' => __('messages.please_select'), 'required', 'id' => 'product_id']); !!}
                 </div>
             </div>
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <div class="form-group">
                     {!! Form::label('product_output', __('lang_v1.product_output') . ':') !!}
-                    {!! Form::number('product_output', null, ['class' => 'form-control', 'readonly', 'id' => 'product_output']); !!}
+                    {!! Form::number('product_output', null, ['class' => 'form-control', 'id' => 'product_output']); !!}
                 </div>
             </div>
         </div>

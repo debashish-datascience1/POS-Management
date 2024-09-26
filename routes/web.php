@@ -116,8 +116,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         Route::delete('/packing/{id}', [App\Http\Controllers\PackingController::class, 'destroy'])->name('packing.destroy');
     });
     Route::get('/get-product-stock/{id}', [App\Http\Controllers\ProductController::class, 'getProductStock']);
-    Route::get('/get-product-output/{id}', [App\Http\Controllers\PackingController::class, 'getProductOutput']);
-    Route::get('pos/payment/{id}', [SellPosController::class, 'edit'])->name('edit-pos-payment');
+    Route::get('/get-product-output/{location_id}/{product_id}', [App\Http\Controllers\PackingController::class, 'getProductOutput']);    Route::get('pos/payment/{id}', [SellPosController::class, 'edit'])->name('edit-pos-payment');
     Route::get('service-staff-availability', [SellPosController::class, 'showServiceStaffAvailibility']);
     Route::get('pause-resume-service-staff-timer/{user_id}', [SellPosController::class, 'pauseResumeServiceStaffTimer']);
     Route::get('mark-as-available/{user_id}', [SellPosController::class, 'markAsAvailable']);

@@ -18,7 +18,8 @@ class Packing extends Model
         'packet',
         'total',
         'grand_total',
-        'date'
+        'date',
+        'location_id'
     ];
 
     protected $casts = [

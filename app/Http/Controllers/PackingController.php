@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Packing;
 use App\Product;
 use App\ProductionUnit;
+use App\BusinessLocation;
+use App\ProductionStock;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
@@ -13,49 +15,7 @@ use Illuminate\Support\Facades\Log;
 
 class PackingController extends Controller
 {
-    // public function index()
-    // {
-    //     if (!auth()->user()->can('packing.view')) {
-    //         abort(403, 'Unauthorized action.');
-    //     }
 
-    //     if (request()->ajax()) {
-    //         $business_id = request()->session()->get('user.business_id');
-
-    //         $packings = Packing::with('product')
-    //             ->where('business_id', $business_id)
-    //             ->select(['id', 'product_id', 'product_output', 'mix', 'jar', 'packet', 'total', 'grand_total', 'created_at', 'date']);
-
-    //         return DataTables::of($packings)
-    //             ->addColumn('action', function ($row) {
-    //                 $html = '<div class="btn-group">
-    //                             <button type="button" class="btn btn-info dropdown-toggle btn-xs" 
-    //                                 data-toggle="dropdown" aria-expanded="false">' .
-    //                     __("messages.actions") .
-    //                     '<span class="caret"></span><span class="sr-only">Toggle Dropdown
-    //                                 </span>
-    //                             </button>
-    //                             <ul class="dropdown-menu dropdown-menu-right" role="menu">
-    //                             <li><a href="' . action([self::class, 'edit'], [$row->id]) . '"><i class="glyphicon glyphicon-edit"></i> ' . __("messages.edit") . '</a></li>
-    //                             <li><a href="#" data-href="' . action([self::class, 'destroy'], [$row->id]) . '" class="delete_packing_button"><i class="glyphicon glyphicon-trash"></i> ' . __("messages.delete") . '</a></li>
-    //                             </ul>
-    //                         </div>';
-    //                 return $html;
-    //             })
-    //             ->editColumn('product_id', function ($row) {
-    //                 return $row->product->name ?? '';
-    //             })
-    //             ->editColumn('packing', function ($row) {
-    //                 return implode(', ', $row->packing);
-    //             })
-    //             ->editColumn('date', '{{@format_date($date)}}')
-    //             ->editColumn('created_at', '{{@format_datetime($created_at)}}')
-    //             ->rawColumns(['action'])
-    //             ->make(true);
-    //     }
-
-    //     return view('packing.index');
-    // }
     public function index()
     {
         if (!auth()->user()->can('packing.view')) {
@@ -122,20 +82,35 @@ class PackingController extends Controller
 
         $business_id = request()->session()->get('user.business_id');
         $products = Product::where('business_id', $business_id)->pluck('name', 'id');
+        $business_locations = BusinessLocation::forDropdown($business_id, false, true);
+        $bl_attributes = $business_locations['attributes'];
+        $business_locations = $business_locations['locations'];
+
         
         $packing_options = ['10L', '20L', '1L', '500ML']; // Define available packing options
 
-        return view('packing.create', compact('products', 'packing_options'));
+        return view('packing.create', compact('products', 'packing_options', 'business_locations', 'bl_attributes'));
     }
 
-    public function getProductOutput($id)
+    // public function getProductOutput($id)
+    // {
+    //     $totalRawMaterial = ProductionUnit::where('product_id', $id)->sum('raw_material');
+    //     return response()->json(['raw_material' => $totalRawMaterial]);
+    // }
+    public function getProductOutput($location_id, $product_id)
     {
-        $productionUnit = ProductionUnit::where('product_id', $id)->first();
-        return response()->json(['raw_material' => $productionUnit ? $productionUnit->raw_material : 0]);
+        $productionStock = ProductionStock::where('location_id', $location_id)
+            ->where('product_id', $product_id)
+            ->first();
+
+        $totalRawMaterial = $productionStock ? $productionStock->total_raw_material : 0;
+
+        return response()->json(['raw_material' => $totalRawMaterial]);
     }
 
     public function store(Request $request)
     {
+        // dd($request->all());
         if (!auth()->user()->can('packing.create')) {
             abort(403, 'Unauthorized action.');
         }
@@ -158,6 +133,7 @@ class PackingController extends Controller
                 'total' => 'required|numeric',
                 'grand_total' => 'required|numeric',
                 'date' => 'required|date',
+                'location_id' => 'required|exists:business_locations,id',
             ]);
 
             $input['business_id'] = $request->session()->get('user.business_id');
@@ -194,11 +170,26 @@ class PackingController extends Controller
             $packing = Packing::create($input);
 
             // Update the production unit's raw material if necessary
-            $productionUnit = ProductionUnit::where('product_id', $input['product_id'])->first();
-            if ($productionUnit) {
-                $productionUnit->raw_material = $input['product_output'];
-                $productionUnit->save();
+            // $productionUnit = ProductionUnit::where('product_id', $input['product_id'])->first();
+            // if ($productionUnit) {
+            //     $productionUnit->raw_material = $input['product_output'];
+            //     $productionUnit->save();
+            // }
+
+            $productionStock = ProductionStock::where('location_id', $input['location_id'])
+            ->where('product_id', $input['product_id'])
+            ->first();
+
+            if (!$productionStock) {
+                throw new Exception("ProductionStock not found for the given product and location.");
             }
+
+            if ($productionStock->total_raw_material < $input['product_output']) {
+                throw new Exception("Insufficient raw material in stock.");
+            }
+
+            $productionStock->total_raw_material -= $input['product_output'];
+            $productionStock->save();
 
             DB::commit();
 
@@ -232,8 +223,11 @@ class PackingController extends Controller
         $business_id = request()->session()->get('user.business_id');
         $packing = Packing::where('business_id', $business_id)->findOrFail($id);
         $products = Product::where('business_id', $business_id)->pluck('name', 'id');
+        $business_locations = BusinessLocation::forDropdown($business_id, false, true);
+        $bl_attributes = $business_locations['attributes'];
+        $business_locations = $business_locations['locations'];
 
-        return view('packing.edit', compact('packing', 'products'));
+        return view('packing.edit', compact('packing', 'products', 'business_locations','bl_attributes'));
     }
 
     public function update(Request $request, $id)
@@ -261,6 +255,8 @@ class PackingController extends Controller
                 'total' => 'required|numeric',
                 'grand_total' => 'required|numeric',
                 'date' => 'required|date',
+                'location_id' => 'required|exists:business_locations,id',
+
             ]);
     
             $packing = Packing::findOrFail($id);
@@ -278,15 +274,34 @@ class PackingController extends Controller
                 $packetData[] = $packet['size'] . ':' . $packet['quantity'] . ':' . $packet['price'];
             }
             $input['packet'] = implode(',', $packetData);
+
+            $productionStock = ProductionStock::where('location_id', $input['location_id'])
+                ->where('product_id', $input['product_id'])
+                ->first();
+
+            if (!$productionStock) {
+                throw new Exception("ProductionStock not found for the given product and location.");
+            }
+
+            $oldProductOutput = $packing->product_output;
+            $newProductOutput = $input['product_output'];
+            $difference = $newProductOutput - $oldProductOutput;
+
+            if ($difference > 0 && $productionStock->total_raw_material < $difference) {
+                throw new Exception("Insufficient raw material in stock.");
+            }
+
+            $productionStock->total_raw_material -= $difference;
+            $productionStock->save();
     
             $packing->update($input);
     
             // Update the production unit's raw material if necessary
-            $productionUnit = ProductionUnit::where('product_id', $input['product_id'])->first();
-            if ($productionUnit) {
-                $productionUnit->raw_material = $input['product_output'];
-                $productionUnit->save();
-            }
+            // $productionUnit = ProductionUnit::where('product_id', $input['product_id'])->first();
+            // if ($productionUnit) {
+            //     $productionUnit->raw_material = $input['product_output'];
+            //     $productionUnit->save();
+            // }
     
             DB::commit();
     
@@ -328,6 +343,17 @@ class PackingController extends Controller
             $packing = Packing::where('business_id', $business_id)->findOrFail($id);
 
             DB::beginTransaction();
+
+            $productionStock = ProductionStock::where('location_id', $packing->location_id)
+                ->where('product_id', $packing->product_id)
+                ->first();
+
+            if (!$productionStock) {
+                throw new Exception("ProductionStock not found for the given product and location.");
+            }
+
+            $productionStock->total_raw_material += $packing->product_output;
+            $productionStock->save();
 
             $packing->delete();
 

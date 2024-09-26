@@ -18,6 +18,7 @@ return [
     'cmmsn_percent' => 'Sales Commission Percentage (%)',
     'sales_added' => 'Sales Added',
     'sales_with_commission' => 'Sales With Commission',
+    'cannot_delete_production_unit_with_packing' => 'Cannot Delete Production Unit With Packing',
     // 'total_sale_with_commission' => 'Total Sale With Commission',
     'total_sale_commission' => 'Total Sale Commission',
     'sales_item_addition_method' => 'Sales Item Addition Method',

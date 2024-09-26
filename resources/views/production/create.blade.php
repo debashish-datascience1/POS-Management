@@ -37,16 +37,6 @@
                         {!! Form::number('raw_material', null, ['class' => 'form-control', 'required', 'placeholder' => __('lang_v1.raw_material'), 'id' => 'raw_material']); !!}
                     </div>
                 </div>
-                @if(count($business_locations) == 1)
-                    @php 
-                        $default_location = current(array_keys($business_locations->toArray()));
-                        $search_disable = false; 
-                    @endphp
-                @else
-                    @php $default_location = null;
-                    $search_disable = true;
-                    @endphp
-                @endif
                 <div class="col-sm-3">
                     <div class="form-group">
                         {!! Form::label('location_id', __('purchase.business_location').':*') !!}

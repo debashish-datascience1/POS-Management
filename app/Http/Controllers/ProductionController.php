@@ -7,7 +7,9 @@ use App\Utils\ModuleUtil;
 use Illuminate\Support\Facades\Log;
 use App\ProductionUnit;
 use App\Product;
+use App\Packing;
 use App\BusinessLocation;
+use App\ProductionStock;
 use Illuminate\Support\Facades\DB;
 use App\VariationLocationDetails;
 
@@ -129,7 +131,7 @@ class ProductionController extends Controller
             if (!auth()->user()->can('production.create')) {
                 abort(403, 'Unauthorized action.');
             }
-
+    
             $validated = $request->validate([
                 'date' => 'required|date',
                 'raw_material' => 'required|numeric',
@@ -137,20 +139,20 @@ class ProductionController extends Controller
                 'updated_stock' => 'required|numeric',
                 'location_id' => 'required|exists:business_locations,id',
             ]);
-
+    
             $business_id = $request->session()->get('user.business_id');
-
+    
             // Check if the location exists in variation_location_details
             $locationExists = VariationLocationDetails::where('product_id', $validated['product_id'])
                 ->where('location_id', $validated['location_id'])
                 ->exists();
-
+    
             if (!$locationExists) {
                 throw new \Exception("Please purchase raw materials for this Business Location first.");
             }
-
+    
             DB::beginTransaction();
-
+    
             $production_unit = new ProductionUnit();
             $production_unit->business_id = $business_id;
             $production_unit->date = $validated['date'];
@@ -158,14 +160,25 @@ class ProductionController extends Controller
             $production_unit->product_id = $validated['product_id'];
             $production_unit->location_id = $validated['location_id'];
             $production_unit->save();
-
+    
+            // Update or create production_stock
+            ProductionStock::updateOrCreate(
+                [
+                    'product_id' => $validated['product_id'],
+                    'location_id' => $validated['location_id'],
+                ],
+                [
+                    'total_raw_material' => DB::raw('total_raw_material + ' . $validated['raw_material']),
+                ]
+            );
+    
             // Update stock in variation_location_details
             $variation = Product::where('id', $validated['product_id'])
                 ->where('business_id', $business_id)
                 ->first()
                 ->variations()
                 ->first();
-
+    
             if ($variation) {
                 VariationLocationDetails::updateOrCreate(
                     [
@@ -177,9 +190,9 @@ class ProductionController extends Controller
                     ['qty_available' => $validated['updated_stock']]
                 );
             }
-
+    
             DB::commit();
-
+    
             $output = [
                 'success' => true,
                 'msg' => __("production.production_add_success")
@@ -192,7 +205,7 @@ class ProductionController extends Controller
                 'msg' => $e->getMessage()
             ];
         }
-
+    
         if ($request->ajax()) {
             return response()->json($output);
         } else {
@@ -254,6 +267,9 @@ class ProductionController extends Controller
             // Restore the original stock
             $this->updateStock($production_unit->product_id, $production_unit->raw_material, '+');
 
+            // Update production_stock table
+            $this->updateProductionStock($production_unit, $validated);
+
             // Update the production unit
             $production_unit->date = $validated['date'];
             $production_unit->raw_material = $validated['raw_material'];
@@ -289,7 +305,65 @@ class ProductionController extends Controller
             }
         }
     }
+
+private function updateProductionStock($production_unit, $validated)
+    {
+        // First, subtract the old raw_material value
+        ProductionStock::where('product_id', $production_unit->product_id)
+            ->where('location_id', $production_unit->location_id)
+            ->decrement('total_raw_material', $production_unit->raw_material);
+
+        // Then, add the new raw_material value
+        ProductionStock::updateOrCreate(
+            [
+                'product_id' => $validated['product_id'],
+                'location_id' => $validated['location_id'],
+            ],
+            [
+                'total_raw_material' => DB::raw('total_raw_material + ' . $validated['raw_material']),
+            ]
+        );
+    }
     
+    // public function destroy($id)
+    // {
+    //     if (!auth()->user()->can('production.delete')) {
+    //         abort(403, 'Unauthorized action.');
+    //     }
+
+    //     try {
+    //         $business_id = request()->session()->get('user.business_id');
+    //         $production_unit = ProductionUnit::where('business_id', $business_id)->findOrFail($id);
+
+    //         DB::beginTransaction();
+
+    //         // Deduct the quantity from production_stock table
+    //         ProductionStock::where('product_id', $production_unit->product_id)
+    //             ->where('location_id', $production_unit->location_id)
+    //             ->decrement('total_raw_material', $production_unit->raw_material);
+
+    //         // Restore the stock in variation_location_details
+    //         $this->updateStock($production_unit->product_id, $production_unit->raw_material, '+');
+
+    //         $production_unit->delete();
+
+    //         DB::commit();
+
+    //         $output = [
+    //             'success' => true,
+    //             'msg' => __("lang_v1.production_delete_success")
+    //         ];
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+    //         Log::error('ProductionController@destroy: ' . $e->getMessage());
+    //         $output = [
+    //             'success' => false,
+    //             'msg' => __("messages.something_went_wrong")
+    //         ];
+    //     }
+
+    //     return $output;
+    // }
     public function destroy($id)
     {
         if (!auth()->user()->can('production.delete')) {
@@ -300,9 +374,24 @@ class ProductionController extends Controller
             $business_id = request()->session()->get('user.business_id');
             $production_unit = ProductionUnit::where('business_id', $business_id)->findOrFail($id);
 
+            // Check if the production unit is associated with any packing
+            $packing_exists = Packing::where('product_id', $production_unit->product_id)->exists();
+
+            if ($packing_exists) {
+                return [
+                    'success' => false,
+                    'msg' => __("lang_v1.cannot_delete_production_unit_with_packing")
+                ];
+            }
+
             DB::beginTransaction();
 
-            // Restore the stock
+            // Deduct the quantity from production_stock table
+            ProductionStock::where('product_id', $production_unit->product_id)
+                ->where('location_id', $production_unit->location_id)
+                ->decrement('total_raw_material', $production_unit->raw_material);
+
+            // Restore the stock in variation_location_details
             $this->updateStock($production_unit->product_id, $production_unit->raw_material, '+');
 
             $production_unit->delete();
