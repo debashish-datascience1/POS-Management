@@ -389,13 +389,19 @@
 								<th class="text-center">
 									@lang('sale.qty')
 								</th>
+								<th class="text-center">
+									Jar
+								</th>
+								<th class="text-center">
+									Packet
+								</th>
 								@if(!empty($pos_settings['inline_service_staff']))
 									<th class="text-center">
 										@lang('restaurant.service_staff')
 									</th>
 								@endif
 								<th class="@if(!auth()->user()->can('edit_product_price_from_sale_screen')) hide @endif">
-									@lang('sale.unit_price')
+									Price
 								</th>
 								<th class="@if(!auth()->user()->can('edit_product_discount_from_sale_screen')) hide @endif">
 									@lang('receipt.discount')

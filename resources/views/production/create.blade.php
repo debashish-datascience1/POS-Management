@@ -67,39 +67,39 @@
         $('.select2').select2();
 
         let currentStock = 0;
-        let productUnit = '';
-        let productId = null;
+    let productUnit = '';
+    let productId = null;
 
-        $('#product_id').on('change', function() {
-            productId = $(this).val();
-            if (productId) {
-                $.ajax({
-                    url: '/get-product-stock/' + productId,
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(data) {
-                        currentStock = parseFloat(data.current_stock);
-                        productUnit = data.unit;
-                        updateStockDisplay();
-                    },
-                    error: function() {
-                        $('#current_stock').html('Unable to fetch stock information');
-                    }
-                });
-            } else {
-                $('#current_stock').html('');
-            }
-        });
-
-        $('#raw_material').on('input', function() {
-            updateStockDisplay();
-        });
-
-        function updateStockDisplay() {
-            let quantity = parseFloat($('#raw_material').val()) || 0;
-            let remainingStock = Math.max(currentStock - quantity, 0);
-            $('#current_stock').html('Current Stock: ' + remainingStock.toFixed(2) + ' ' + productUnit);
+    $('#product_id').on('change', function() {
+        productId = $(this).val();
+        if (productId) {
+            $.ajax({
+                url: '/get-product-stock/' + productId,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    currentStock = parseFloat(data.current_stock);
+                    productUnit = data.unit;
+                    updateStockDisplay();
+                },
+                error: function() {
+                    $('#current_stock').html('Unable to fetch stock information');
+                }
+            });
+        } else {
+            $('#current_stock').html('');
         }
+    });
+
+    $('#raw_material').on('input', function() {
+        updateStockDisplay();
+    });
+
+    function updateStockDisplay() {
+        let quantity = parseFloat($('#raw_material').val()) || 0;
+        let remainingStock = Math.max(currentStock - quantity, 0);
+        $('#current_stock').html('Current Stock: ' + remainingStock.toFixed(2) + ' ' + productUnit);
+    }
 
         $('#production_add_form').on('submit', function(e) {
             e.preventDefault();

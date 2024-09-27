@@ -339,13 +339,13 @@ class ProductController extends Controller
         $variation = $product->variations->first();
         $current_stock = 0;
         $unit = $product->unit->short_name;
-
+    
         if ($product->enable_stock == 1 && $variation) {
             $current_stock = $variation->variation_location_details->sum('qty_available');
         }
-
+    
         return response()->json([
-            'current_stock' => number_format($current_stock, 2),
+            'current_stock' => $current_stock,
             'unit' => $unit
         ]);
     }
@@ -1238,8 +1238,19 @@ class ProductController extends Controller
             }
 
             $result = $this->productUtil->filterProduct($business_id, $search_term, $location_id, $not_for_selling, $price_group_id, $product_types, $search_fields, $check_qty);
-
-            return json_encode($result);
+            $mappedResult = $result->map(function ($product) {
+                $product->packings = [
+                    'jar' => $product->jar,
+                    'packet' => $product->packet,
+                    'total' => $product->total,
+                    'grand_total' => $product->grand_total
+                ];
+                return $product;
+            });
+    
+            \Log::info('Filtered products:', ['products' => $mappedResult->toArray()]);
+    
+            return json_encode($mappedResult);
         }
     }
 

@@ -3,6 +3,7 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Packing;
 
 class Product extends Model
 {
@@ -222,4 +223,10 @@ class Product extends Model
     {
         return $this->hasMany(\App\ProductRack::class);
     }
+
+    public function packings()
+    {
+        return $this->hasMany(Packing::class);
+    }
+
 }

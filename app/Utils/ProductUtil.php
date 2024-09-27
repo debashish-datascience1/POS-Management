@@ -1595,6 +1595,7 @@ class ProductUtil extends Util
                 ->active()
                 ->whereNull('variations.deleted_at')
                 ->leftjoin('units as U', 'products.unit_id', '=', 'U.id')
+                ->leftJoin('packings', 'products.id', '=', 'packings.product_id')
                 ->leftjoin(
                     'variation_location_details AS VLD',
                     function ($join) use ($location_id) {
@@ -1715,7 +1716,11 @@ class ProductUtil extends Util
                 'VLD.qty_available',
                 'variations.sell_price_inc_tax as selling_price',
                 'variations.sub_sku',
-                'U.short_name as unit'
+                'U.short_name as unit',
+                'packings.jar',
+                'packings.packet',
+                'packings.total',
+                'packings.grand_total'
             );
 
         if (! empty($price_group_id)) {
