@@ -23,9 +23,12 @@
             <table class="table table-bordered table-striped" id="production_table">
                 <thead>
                     <tr>
+                        <th>@lang('messages.name')</th>
                         <th>@lang('messages.date')</th>
-                        <th>@lang('lang_v1.raw_material')</th>
+                        <th>@lang('business.location')</th>
                         <th>@lang('lang_v1.product')</th>
+                        <th>@lang('lang_v1.raw_materials')</th>
+                        <th>@lang('lang_v1.total_quantity')</th>
                         <th>@lang('messages.action')</th>
                     </tr>
                 </thead>
@@ -46,9 +49,12 @@
             serverSide: true,
             ajax: '/production/unit',
             columns: [
+                { data: 'name', name: 'name' },
                 { data: 'date', name: 'date' },
-                { data: 'raw_material', name: 'raw_material' },
-                { data: 'product_name', name: 'product.name' },
+                { data: 'location_name', name: 'location.name' },
+                { data: 'products', name: 'product_id' },
+                { data: 'raw_materials', name: 'raw_material' },
+                { data: 'total_quantity', name: 'total_quantity' },
                 { data: 'action', name: 'action', orderable: false, searchable: false },
             ],
         });

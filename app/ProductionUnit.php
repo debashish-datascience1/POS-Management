@@ -10,16 +10,22 @@ class ProductionUnit extends Model
     use HasFactory;
 
     protected $fillable = [
+        'name',
         'business_id',
         'date',
         'raw_material',
         'products',
+        'total_quantity',
+        'location_id',
+
     ];
 
     protected $casts = [
         'date' => 'date',
-        'raw_material' => 'integer',
+        // 'raw_material' => 'integer',
         'products' => 'array', // This assumes you'll store JSON in the products column
+        'product_id' => 'array',
+        'raw_material' => 'array',
     ];
 
     public function business()
@@ -30,6 +36,11 @@ class ProductionUnit extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function location()
+    {
+        return $this->belongsTo(BusinessLocation::class);
     }
     
 }
