@@ -35,6 +35,13 @@
                 <tbody>
                     <!-- DataTables will fill this -->
                 </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="5" style="text-align:right">Total:</th>
+                        <th id="total_quantity"></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     @endcomponent
@@ -57,6 +64,14 @@
                 { data: 'total_quantity', name: 'total_quantity' },
                 { data: 'action', name: 'action', orderable: false, searchable: false },
             ],
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+                var total = api.column(5).data().reduce(function (a, b) {
+                    return parseFloat(a) + parseFloat(b);
+                }, 0);
+                
+                $(api.column(5).footer()).html(total.toFixed(2));
+            }
         });
 
         $(document).on('click', '.delete_production_unit', function(e) {

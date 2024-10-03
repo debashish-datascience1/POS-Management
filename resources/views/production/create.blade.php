@@ -35,7 +35,7 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             {!! Form::label('liquor', __('lang_v1.liquor') . ':*') !!}
-                            {!! Form::text('liquor', null, ['class' => 'form-control', 'required', 'placeholder' => __('lang_v1.liquor')]); !!}
+                            {!! Form::text('liquor', 'liquor', ['class' => 'form-control', 'required', 'readonly' => 'readonly', 'style' => 'background-color: #eee;']); !!}
                         </div>
                     </div>
                 </div>
