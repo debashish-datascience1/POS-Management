@@ -11,29 +11,32 @@
     @component('components.widget', ['class' => 'box-primary'])
         {!! Form::open(['url' => action([\App\Http\Controllers\PackingController::class, 'store']), 'method' => 'post', 'id' => 'packing_form' ]) !!}
         <div class="row">
-            <div class="col-sm-3">
+            <div class="col-sm-4">
                 <div class="form-group">
                     {!! Form::label('date', __('messages.date') . ':*') !!}
                     {!! Form::date('date', \Carbon\Carbon::now(), ['class' => 'form-control', 'required']); !!}
                 </div>
             </div>
-            <div class="col-sm-3">
+            <div class="col-sm-4">
                 <div class="form-group">
                     {!! Form::label('location_id', __('purchase.business_location').':*') !!}
                     @show_tooltip(__('tooltip.purchase_location'))
                     {!! Form::select('location_id', $business_locations, $default_location, ['class' => 'form-control select2', 'placeholder' => __('messages.please_select'), 'required'], $bl_attributes); !!}
                 </div>
             </div>
-            <div class="col-sm-3">
+            <div class="col-sm-4">
                 <div class="form-group">
-                    {!! Form::label('product_id', __('lang_v1.product') . ':*') !!}
-                    {!! Form::select('product_id', $products, null, ['class' => 'form-control select2', 'placeholder' => __('messages.please_select'), 'required', 'id' => 'product_id']); !!}
-                </div>
-            </div>
-            <div class="col-sm-3">
-                <div class="form-group">
-                    {!! Form::label('product_output', __('lang_v1.product_output') . ':') !!}
-                    {!! Form::number('product_output', null, ['class' => 'form-control', 'id' => 'product_output']); !!}
+                    {!! Form::label('product_output', __('lang_v1.product_output') . ':*') !!}
+                    {!! Form::number('product_output', null, [
+                        'class' => 'form-control',
+                        'id' => 'product_output',
+                        'step' => 'any',
+                        'min' => '0',
+                        'required',
+                        'placeholder' => 'Enter value'
+                    ]); !!}                    
+                    <span class="help-block" id="packing_stock_info" style="color: #3c8dbc;"></span>
+                    <span class="help-block error-msg" id="stock_error" style="color: #dd4b39; display: none;"></span>
                 </div>
             </div>
         </div>
@@ -94,6 +97,8 @@
         const packetOptions = ['100ML', '200ML', '500ML'];
         let jarCount = 0;
         let packetCount = 0;
+        let originalStock = 0;
+        let currentLocationId = null;
 
         function addOption(type) {
             let options = type === 'jar' ? jarOptions : packetOptions;
@@ -154,32 +159,129 @@
             }
         });
 
-        $('#location_id').change(function(){
-            var productId = $('#product_id').val();
-            var locationId = $(this).val();
-            if(productId && locationId) {
-                $.ajax({
-                    url: '/get-product-output/' + locationId + '/' + productId,
-                    type: "GET",
-                    dataType: "json",
-                    success:function(data) {
-                        $('#product_output').val(data.raw_material);
-                        calculateTotal();
+        function formatNumber(num) {
+        return parseFloat(num).toFixed(2);
+    }
+
+    // Update the location change handler
+    $('#location_id').change(function(){
+        currentLocationId = $(this).val();
+        if(currentLocationId) {
+            $.ajax({
+                url: '/get-packing-stock/' + currentLocationId,
+                type: "GET",
+                dataType: "json",
+                success: function(response) {
+                    if(response.success) {
+                        originalStock = response.data.total; // Store the original stock
+                        $('#packing_stock_info').html('Packing Stock: ' + originalStock);
+                        
+                        // Set the initial value in product output field
+                        if (!$('#product_output').val()) {
+                            $('#product_output').val(formatNumber(response.data.raw_material));
+                            calculateTotal();
+                        }
+                    } else {
+                        $('#product_output').val('');
+                        $('#packing_stock_info').html(response.message);
                     }
-                });
+                },
+                error: function() {
+                    $('#product_output').val('');
+                    $('#packing_stock_info').html('Error fetching packing stock information');
+                }
+            });
+        } else {
+            $('#product_output').val('');
+            $('#packing_stock_info').html('');
+            originalStock = 0;
+        }
+    });
+
+    // Handle product output changes
+    $('#product_output').on('input', function(e) {
+        let value = $(this).val();
+        
+        // If the field is empty, show original stock and reset calculations
+        if (value === '') {
+            $('#packing_stock_info').html('Packing Stock: ' + originalStock);
+            $('#stock_error').hide();
+            $('#total').val('0.00');
+            $('#grand_total').val('0.00');
+            return;
+        }
+        
+        // Remove any non-numeric characters except decimal point
+        value = value.replace(/[^\d.]/g, '');
+        
+        // Ensure only one decimal point
+        let decimalCount = (value.match(/\./g) || []).length;
+        if (decimalCount > 1) {
+            value = value.replace(/\.+$/, '');
+        }
+
+        // Update the value
+        $(this).val(value);
+
+        if (currentLocationId) {
+            validateStock(value);
+        }
+
+        calculateTotal();
+    });
+
+    function validateStock(value) {
+        if (value === '') {
+            $('#packing_stock_info').html('Packing Stock: ' + originalStock);
+            $('#stock_error').hide();
+            return;
+        }
+
+        $.ajax({
+            url: '/validate-packing-stock',
+            type: 'POST',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                location_id: currentLocationId,
+                amount: value
+            },
+            success: function(response) {
+                if (response.success) {
+                    if (response.data.isValid) {
+                        $('#stock_error').hide();
+                        $('#packing_stock_info').html('Remaining Stock: ' + response.data.remaining);
+                        calculateTotal();
+                    } else {
+                        $('#stock_error').html('Insufficient stock available').show();
+                    }
+                }
+            },
+            error: function() {
+                $('#stock_error').html('Error validating stock').show();
             }
         });
+    }
 
+        // Validate form before submit
+        $('#packing_form').on('submit', function(e) {
+            let productOutput = parseFloat($('#product_output').val());
+            if (isNaN(productOutput) || productOutput <= 0 || productOutput > originalStock) {
+                e.preventDefault();
+                alert('Invalid product output amount');
+                return false;
+            }
+        });
         $('#mix').on('input', function() {
             calculateTotal();
         });
 
         function calculateTotal() {
-            var productOutput = parseFloat($('#product_output').val()) || 0;
-            var mix = parseFloat($('#mix').val()) || 0;
-            var total = productOutput + (productOutput * mix / 100);
-            $('#total').val(total.toFixed(2));
-        }
+        var productOutput = parseFloat($('#product_output').val()) || 0;
+        var mix = parseFloat($('#mix').val()) || 0;
+        var total = productOutput + (productOutput * mix / 100);
+        $('#total').val(total.toFixed(2));
+        calculateGrandTotal();
+    }
 
         $(document).on('input', '.jar-quantity, .jar-price, .packet-quantity, .packet-price', function() {
             calculateGrandTotal();

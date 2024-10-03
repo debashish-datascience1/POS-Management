@@ -115,7 +115,8 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         Route::put('/packing/{id}', [App\Http\Controllers\PackingController::class, 'update'])->name('packing.update');
         Route::delete('/packing/{id}', [App\Http\Controllers\PackingController::class, 'destroy'])->name('packing.destroy');
     });
-    Route::get('/get-product-stock/{id}', [App\Http\Controllers\ProductController::class, 'getProductStock']);
+    Route::get('/get-packing-stock/{location_id}', [\App\Http\Controllers\PackingController::class, 'getPackingStock']);
+    Route::post('/validate-packing-stock', [\App\Http\Controllers\PackingController::class, 'validateStock']);    Route::get('/get-product-stock/{id}', [App\Http\Controllers\ProductController::class, 'getProductStock']);
     Route::get('/get-product-output/{location_id}/{product_id}', [App\Http\Controllers\PackingController::class, 'getProductOutput']);    Route::get('pos/payment/{id}', [SellPosController::class, 'edit'])->name('edit-pos-payment');
     Route::get('service-staff-availability', [SellPosController::class, 'showServiceStaffAvailibility']);
     Route::get('pause-resume-service-staff-timer/{user_id}', [SellPosController::class, 'pauseResumeServiceStaffTimer']);

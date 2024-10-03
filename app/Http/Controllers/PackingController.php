@@ -7,6 +7,7 @@ use App\Product;
 use App\ProductionUnit;
 use App\BusinessLocation;
 use App\ProductionStock;
+use App\PackingStock;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
@@ -81,7 +82,7 @@ class PackingController extends Controller
         }
 
         $business_id = request()->session()->get('user.business_id');
-        $products = Product::where('business_id', $business_id)->pluck('name', 'id');
+        // $products = Product::where('business_id', $business_id)->pluck('name', 'id');
         $business_locations = BusinessLocation::forDropdown($business_id, false, true);
         $bl_attributes = $business_locations['attributes'];
         $business_locations = $business_locations['locations'];
@@ -89,28 +90,80 @@ class PackingController extends Controller
         
         $packing_options = ['10L', '20L', '1L', '500ML']; // Define available packing options
 
-        return view('packing.create', compact('products', 'packing_options', 'business_locations', 'bl_attributes'));
+        return view('packing.create', compact('packing_options', 'business_locations', 'bl_attributes'));
     }
 
-    // public function getProductOutput($id)
-    // {
-    //     $totalRawMaterial = ProductionUnit::where('product_id', $id)->sum('raw_material');
-    //     return response()->json(['raw_material' => $totalRawMaterial]);
-    // }
-    public function getProductOutput($location_id, $product_id)
+    public function getPackingStock($location_id)
     {
-        $productionStock = ProductionStock::where('location_id', $location_id)
-            ->where('product_id', $product_id)
-            ->first();
+        try {
+            $packingStock = PackingStock::where('location_id', $location_id)
+                ->select('total')
+                ->first();
 
-        $totalRawMaterial = $productionStock ? $productionStock->total_raw_material : 0;
+            if (!$packingStock) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No packing stock found for this location'
+                ]);
+            }
 
-        return response()->json(['raw_material' => $totalRawMaterial]);
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total' => number_format($packingStock->total, 2, '.', ''), // Format to 2 decimal places
+                    'original_total' => $packingStock->total // Keep original value for calculations
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            \Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching packing stock'
+            ]);
+        }
+    }
+
+    public function validateStock(Request $request)
+    {
+        try {
+            $location_id = $request->location_id;
+            $requested_amount = $request->amount;
+
+            $packingStock = PackingStock::where('location_id', $location_id)
+                ->select('total')
+                ->first();
+
+            if (!$packingStock) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No packing stock found'
+                ]);
+            }
+
+            $isValid = $requested_amount <= $packingStock->total;
+            $remaining = $packingStock->total - $requested_amount;
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'isValid' => $isValid,
+                    'remaining' => number_format($remaining, 2, '.', ''),
+                    'message' => $isValid ? 'Stock available' : 'Insufficient stock'
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error validating stock'
+            ]);
+        }
     }
 
     public function store(Request $request)
     {
-        // dd($request->all());
         if (!auth()->user()->can('packing.create')) {
             abort(403, 'Unauthorized action.');
         }
@@ -119,7 +172,6 @@ class PackingController extends Controller
             DB::beginTransaction();
 
             $input = $request->validate([
-                'product_id' => 'required|exists:products,id',
                 'product_output' => 'required|numeric',
                 'mix' => 'required|numeric|min:0',
                 'jar' => 'nullable|array',
@@ -167,29 +219,19 @@ class PackingController extends Controller
                 ]);
             }
 
+            // Remove product_id from the input array as it's no longer needed
+            unset($input['product_id']);
+
             $packing = Packing::create($input);
 
-            // Update the production unit's raw material if necessary
-            // $productionUnit = ProductionUnit::where('product_id', $input['product_id'])->first();
-            // if ($productionUnit) {
-            //     $productionUnit->raw_material = $input['product_output'];
-            //     $productionUnit->save();
-            // }
-
-            $productionStock = ProductionStock::where('location_id', $input['location_id'])
-            ->where('product_id', $input['product_id'])
-            ->first();
-
-            if (!$productionStock) {
-                throw new Exception("ProductionStock not found for the given product and location.");
+            $packingStock = PackingStock::where('location_id', $request->location_id)->first();
+            if (!$packingStock || $packingStock->total < $request->product_output) {
+                throw new Exception('Insufficient stock available');
             }
 
-            if ($productionStock->total_raw_material < $input['product_output']) {
-                throw new Exception("Insufficient raw material in stock.");
-            }
-
-            $productionStock->total_raw_material -= $input['product_output'];
-            $productionStock->save();
+            // Update the packing stock
+            $packingStock->total -= $request->product_output;
+            $packingStock->save();
 
             DB::commit();
 
@@ -232,103 +274,101 @@ class PackingController extends Controller
 
     public function update(Request $request, $id)
     {
-        \Log::info('Packing store request:', $request->all());
         if (!auth()->user()->can('packing.edit')) {
             abort(403, 'Unauthorized action.');
         }
-    
+
         try {
             DB::beginTransaction();
-    
+
             $input = $request->validate([
-                'product_id' => 'required|exists:products,id',
                 'product_output' => 'required|numeric',
                 'mix' => 'required|numeric|min:0',
-                'jar' => 'required|array',
-                'jar.*.size' => 'required|in:5L,10L,20L',
-                'jar.*.quantity' => 'required|integer|min:1',
-                'jar.*.price' => 'required|numeric|min:0',
-                'packet' => 'required|array',
-                'packet.*.size' => 'required|in:100ML,200ML,500ML',
-                'packet.*.quantity' => 'required|integer|min:1',
-                'packet.*.price' => 'required|numeric|min:0',
+                'jar' => 'nullable|array',
+                'jar.*.size' => 'required_with:jar|in:5L,10L,20L',
+                'jar.*.quantity' => 'required_with:jar|integer|min:1',
+                'jar.*.price' => 'required_with:jar|numeric|min:0',
+                'packet' => 'nullable|array',
+                'packet.*.size' => 'required_with:packet|in:100ML,200ML,500ML',
+                'packet.*.quantity' => 'required_with:packet|integer|min:1',
+                'packet.*.price' => 'required_with:packet|numeric|min:0',
                 'total' => 'required|numeric',
                 'grand_total' => 'required|numeric',
                 'date' => 'required|date',
                 'location_id' => 'required|exists:business_locations,id',
-
             ]);
-    
+
             $packing = Packing::findOrFail($id);
-    
+
             // Convert jar array to a formatted string
             $jarData = [];
-            foreach ($input['jar'] as $jar) {
-                $jarData[] = $jar['size'] . ':' . $jar['quantity'] . ':' . $jar['price'];
+            if (!empty($input['jar'])) {
+                foreach ($input['jar'] as $jar) {
+                    $jarData[] = $jar['size'] . ':' . $jar['quantity'] . ':' . $jar['price'];
+                }
+                $input['jar'] = implode(',', $jarData);
+            } else {
+                $input['jar'] = null;
             }
-            $input['jar'] = implode(',', $jarData);
-    
+
             // Convert packet array to a formatted string
             $packetData = [];
-            foreach ($input['packet'] as $packet) {
-                $packetData[] = $packet['size'] . ':' . $packet['quantity'] . ':' . $packet['price'];
+            if (!empty($input['packet'])) {
+                foreach ($input['packet'] as $packet) {
+                    $packetData[] = $packet['size'] . ':' . $packet['quantity'] . ':' . $packet['price'];
+                }
+                $input['packet'] = implode(',', $packetData);
+            } else {
+                $input['packet'] = null;
             }
-            $input['packet'] = implode(',', $packetData);
 
-            $productionStock = ProductionStock::where('location_id', $input['location_id'])
-                ->where('product_id', $input['product_id'])
-                ->first();
+            // Ensure at least one of jar or packet is provided
+            if (empty($input['jar']) && empty($input['packet'])) {
+                throw new ValidationException(Validator::make([], []), [
+                    'jar_or_packet' => ['Either jar or packet must be provided.']
+                ]);
+            }
 
-            if (!$productionStock) {
-                throw new Exception("ProductionStock not found for the given product and location.");
+            $packingStock = PackingStock::where('location_id', $input['location_id'])->first();
+            if (!$packingStock) {
+                throw new Exception("PackingStock not found for the given location.");
             }
 
             $oldProductOutput = $packing->product_output;
             $newProductOutput = $input['product_output'];
             $difference = $newProductOutput - $oldProductOutput;
 
-            if ($difference > 0 && $productionStock->total_raw_material < $difference) {
-                throw new Exception("Insufficient raw material in stock.");
+            if ($difference > 0 && $packingStock->total < $difference) {
+                throw new Exception("Insufficient stock available in packing stock.");
             }
 
-            $productionStock->total_raw_material -= $difference;
-            $productionStock->save();
-    
+            $packingStock->total -= $difference;
+            $packingStock->save();
+
             $packing->update($input);
-    
-            // Update the production unit's raw material if necessary
-            // $productionUnit = ProductionUnit::where('product_id', $input['product_id'])->first();
-            // if ($productionUnit) {
-            //     $productionUnit->raw_material = $input['product_output'];
-            //     $productionUnit->save();
-            // }
-    
+
             DB::commit();
-    
+
             $output = [
                 'success' => true,
                 'msg' => __('lang_v1.packing_updated_successfully')
             ];
-    
+
         } catch (ValidationException $e) {
             DB::rollBack();
             Log::error("Validation failed: " . json_encode($e->errors()));
-    
-            $output = [
-                'success' => false,
-                'msg' => __('messages.validation_failed'),
-                'errors' => $e->errors()
-            ];
+
+            return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (Exception $e) {
             DB::rollBack();
             Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
-    
+
             $output = [
                 'success' => false,
                 'msg' => __('messages.something_went_wrong')
             ];
         }
-    
+
         return redirect()->action([\App\Http\Controllers\PackingController::class, 'index'])->with('status', $output);
     }
 
@@ -344,17 +384,17 @@ class PackingController extends Controller
 
             DB::beginTransaction();
 
-            $productionStock = ProductionStock::where('location_id', $packing->location_id)
-                ->where('product_id', $packing->product_id)
-                ->first();
+            $packingStock = PackingStock::where('location_id', $packing->location_id)->first();
 
-            if (!$productionStock) {
-                throw new Exception("ProductionStock not found for the given product and location.");
+            if (!$packingStock) {
+                throw new Exception("PackingStock not found for the given location.");
             }
 
-            $productionStock->total_raw_material += $packing->product_output;
-            $productionStock->save();
+            // Restore the stock
+            $packingStock->total += $packing->product_output;
+            $packingStock->save();
 
+            // Delete the packing record
             $packing->delete();
 
             DB::commit();
@@ -375,5 +415,4 @@ class PackingController extends Controller
 
         return $output;
     }
-   // Add other methods (store, edit, update, destroy) as needed
 }

@@ -24,7 +24,7 @@
                 <thead>
                     <tr>
                         <th>@lang('messages.date')</th>
-                        <th>@lang('lang_v1.product')</th>
+                        <!-- <th>@lang('lang_v1.product')</th> -->
                         <th>@lang('lang_v1.product_output')</th>
                         <th>@lang('lang_v1.mix')</th>
                         <th>@lang('lang_v1.jar')</th>
@@ -52,7 +52,7 @@
             ajax: '/production/packing',
             columns: [
                 { data: 'date', name: 'date' },
-                { data: 'product_id', name: 'product_id' },
+                // { data: 'product_id', name: 'product_id' },
                 { data: 'product_output', name: 'product_output' },
                 { data: 'mix', name: 'mix' },
                 { data: 'jar', name: 'jar' },
