@@ -4,7 +4,6 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Product;
 
 class Packing extends Model
 {
@@ -12,8 +11,8 @@ class Packing extends Model
 
     protected $fillable = [
         'business_id',
-        'product_id',
-        'product_output',
+        'temperature', 
+        'quantity',    
         'mix',
         'jar',
         'packet',
@@ -23,14 +22,16 @@ class Packing extends Model
         'location_id'
     ];
 
+    protected $dates = ['date'];
     protected $casts = [
         'jar' => 'array',
+        'temperature' => 'array',
         'packet' => 'array',
         'date' => 'date',
-        'product_output' => 'integer',
-        'mix' => 'integer',
-        'total' => 'float',
-        'grand_total' => 'float',
+        'quantity' => 'array',
+        'mix' => 'array',
+        'total' => 'array',
+        'grand_total' => 'decimal:2',
     ];
 
     public function business()
@@ -38,14 +39,14 @@ class Packing extends Model
         return $this->belongsTo(Business::class);
     }
 
-    public function product()
+    public function temperature()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Temperature::class, 'temperature', 'temperature');
     }
 
     public function setJarAttribute($value)
     {
-        $this->attributes['jar'] = json_encode($value);
+        $this->attributes['jar'] = is_array($value) ? json_encode($value) : $value;
     }
 
     public function getJarAttribute($value)
@@ -55,7 +56,7 @@ class Packing extends Model
 
     public function setPacketAttribute($value)
     {
-        $this->attributes['packet'] = json_encode($value);
+        $this->attributes['packet'] = is_array($value) ? json_encode($value) : $value;
     }
 
     public function getPacketAttribute($value)

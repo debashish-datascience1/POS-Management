@@ -161,6 +161,13 @@ class AdminSidebarMenu
                                 ['icon' => '', 'active' => request()->segment(1) == 'products' && request()->segment(2) == 'create']
                             );
                         }
+                        // if (auth()->user()->can('product.view')) {
+                        //     $sub->url(
+                        //         action([\App\Http\Controllers\UtilizeController::class, 'index']),
+                        //         __('lang_v1.list_utilized_materials'),
+                        //         ['icon' => '', 'active' => request()->segment(1) == 'utilize' && request()->segment(2) == '']
+                        //     );
+                        // }
                         if (auth()->user()->can('product.create')) {
                             $sub->url(
                                 action([\App\Http\Controllers\SellingPriceGroupController::class, 'updateProductPrice']),
@@ -299,8 +306,22 @@ class AdminSidebarMenu
                         if (auth()->user()->can('production.view')) {
                             $sub->url(
                                 action([\App\Http\Controllers\ProductionController::class, 'index']),
-                                __('lang_v1.production_unit'),
+                                __('lang_v1.list_utilized_material'),
                                 ['icon' => '', 'active' => request()->is('production/unit*')]
+                            );
+                        }
+                        if (auth()->user()->can('production.view')) {
+                            $sub->url(
+                                action([\App\Http\Controllers\UtilizeController::class, 'index']),
+                                __('lang_v1.production_unit'),
+                                ['icon' => '', 'active' => request()->segment(1) == 'utilize' && request()->segment(2) == '']
+                            );
+                        }
+                        if (auth()->user()->can('production.view')) {
+                            $sub->url(
+                                action([\App\Http\Controllers\TemperatureController::class, 'index']),
+                                __('lang_v1.temperature'),
+                                ['icon' => '', 'active' => request()->is('production/temperature*')]
                             );
                         }
                         if (auth()->user()->can('packing.view')) {

@@ -1,10 +1,10 @@
 @extends('layouts.app')
-@section('title', __('lang_v1.edit_production_unit'))
+@section('title', __('lang_v1.edit_product'))
 
 @section('content')
 <!-- Content Header (Page header) -->
 <section class="content-header">
-    <h1>@lang('lang_v1.edit_production_unit')</h1>
+    <h1>@lang('lang_v1.edit_product')</h1>
 </section>
 
 <!-- Main content -->

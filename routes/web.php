@@ -56,6 +56,7 @@ use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\TransactionPaymentController;
 use App\Http\Controllers\TypesOfServiceController;
 use App\Http\Controllers\UnitController;
+use App\Http\Controllers\UtilizeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VariationTemplateController;
 use App\Http\Controllers\WarrantyController;
@@ -115,9 +116,30 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         Route::put('/packing/{id}', [App\Http\Controllers\PackingController::class, 'update'])->name('packing.update');
         Route::delete('/packing/{id}', [App\Http\Controllers\PackingController::class, 'destroy'])->name('packing.destroy');
     });
+    Route::group(['prefix' => 'utilize', 'as' => 'utilize.'], function () {
+        Route::get('/', [UtilizeController::class, 'index'])->name('index');
+        Route::get('/create', [UtilizeController::class, 'create'])->name('create');
+        Route::post('/', [UtilizeController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [UtilizeController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [UtilizeController::class, 'update'])->name('update');
+        Route::delete('/{id}', [UtilizeController::class, 'destroy'])->name('destroy');
+    });
+    Route::controller(\App\Http\Controllers\TemperatureController::class)->group(function () {
+        Route::get('temperature', 'index')->name('temperature.index');
+        Route::get('temperature/create', 'create')->name('temperature.create');
+        Route::post('temperature', 'store')->name('temperature.store');
+        Route::get('temperature/get-product-outputs', 'getProductOutputs')
+            ->name('temperature.getProductOutputs');
+        Route::get('temperature/{temperature}/edit', 'edit')->name('temperature.edit');
+        Route::put('temperature/{temperature}', 'update')->name('temperature.update');
+        Route::delete('temperature/{temperature}', 'destroy')->name('temperature.destroy');
+    });
+    Route::post('/packing/get-temperature-quantity', [\App\Http\Controllers\PackingController::class, 'getTemperatureQuantity'])->name('packing.getTemperatureQuantity');
     Route::get('/get-packing-stock/{location_id}', [\App\Http\Controllers\PackingController::class, 'getPackingStock']);
-    Route::post('/validate-packing-stock', [\App\Http\Controllers\PackingController::class, 'validateStock']);    Route::get('/get-product-stock/{id}', [App\Http\Controllers\ProductController::class, 'getProductStock']);
-    Route::get('/get-product-output/{location_id}/{product_id}', [App\Http\Controllers\PackingController::class, 'getProductOutput']);    Route::get('pos/payment/{id}', [SellPosController::class, 'edit'])->name('edit-pos-payment');
+    Route::post('/validate-packing-stock', [\App\Http\Controllers\PackingController::class, 'validateStock']);
+    Route::get('/get-product-stock/{id}', [App\Http\Controllers\ProductController::class, 'getProductStock']);
+    Route::get('/get-product-output/{location_id}/{product_id}', [App\Http\Controllers\PackingController::class, 'getProductOutput']);
+    Route::get('pos/payment/{id}', [SellPosController::class, 'edit'])->name('edit-pos-payment');
     Route::get('service-staff-availability', [SellPosController::class, 'showServiceStaffAvailibility']);
     Route::get('pause-resume-service-staff-timer/{user_id}', [SellPosController::class, 'pauseResumeServiceStaffTimer']);
     Route::get('mark-as-available/{user_id}', [SellPosController::class, 'markAsAvailable']);

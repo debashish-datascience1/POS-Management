@@ -1,17 +1,17 @@
 @extends('layouts.app')
 
-@section('title', __('lang_v1.production_unit'))
+@section('title', __('lang_v1.product_utilize'))
 
 @section('content')
 
 <section class="content-header">
-    <h1>@lang('lang_v1.production_unit')
-        <small>@lang('lang_v1.manage_production_units')</small>
+    <h1>@lang('lang_v1.product_utilize')
+        <small>@lang('lang_v1.manage_product_utilize')</small>
     </h1>
 </section>
 
 <section class="content">
-    @component('components.widget', ['class' => 'box-primary', 'title' => __('lang_v1.all_production_units')])
+    @component('components.widget', ['class' => 'box-primary', 'title' => __('lang_v1.all_product_utilize')])
         @slot('tool')
             <div class="box-tools">
                 <a class="btn btn-block btn-primary"

@@ -61,62 +61,62 @@ class ProductController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function index(Request $request)
-{
-    if (!auth()->user()->can('product.view')) {
-        abort(403, 'Unauthorized action.');
+    {
+        if (!auth()->user()->can('product.view')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if ($request->ajax() && $request->input('type') == 'raw_material') {
+            $query = Product::with(['unit', 'brand', 'product_locations'])
+                            ->whereNull('type')  // Assuming raw materials are those with null type
+                            ->select('products.id', 'products.name', 'products.alert_quantity', 'products.unit_id', 'products.brand_id', 'products.enable_stock');
+
+            $products = $query->get();
+
+            $data = Datatables::of($products)
+                ->addColumn('unit', function ($row) {
+                    return $row->unit->short_name ?? '';
+                })
+                ->addColumn('brand', function ($row) {
+                    return $row->brand->name ?? '';
+                })
+                ->addColumn('product_locations', function ($row) {
+                    return $row->product_locations->pluck('name')->implode(', ');
+                })
+                ->addColumn('enable_stock', function ($row) {
+                    return $row->enable_stock ? __('messages.yes') : __('messages.no');
+                })
+                ->addColumn('action', function ($row) {
+                    $html = '<div class="btn-group">';
+                    if (auth()->user()->can("product.update")) {
+                        $html .= '<a href="' . action([\App\Http\Controllers\ProductController::class, 'edit'], [$row->id]) . '" class="btn btn-xs btn-primary"><i class="fa fa-edit"></i> ' . __("messages.edit") . '</a>';
+                    }
+                    if (auth()->user()->can("product.delete")) {
+                        $html .= '<button data-href="' . action([\App\Http\Controllers\ProductController::class, 'destroy'], [$row->id]) . '" class="btn btn-xs btn-danger delete_product_button"><i class="fa fa-trash"></i> ' . __("messages.delete") . '</button>';
+                    }
+                    $html .= '</div>';
+                    return $html;
+                })
+                ->rawColumns(['action', 'enable_stock']);
+
+            $response = $data->make(true);
+            
+            // Add debug information to the response
+            $debugInfo = [
+                'total_raw_materials' => $products->count(),
+                'sql_query' => $query->toSql(),
+                'sql_bindings' => $query->getBindings()
+            ];
+
+            // Merge debug info into the existing response data
+            $responseData = json_decode($response->getContent(), true);
+            $responseData['debug_info'] = $debugInfo;
+
+            return response()->json($responseData);
+        }
+
+        return view('product.index');
     }
-
-    if ($request->ajax() && $request->input('type') == 'raw_material') {
-        $query = Product::with(['unit', 'brand', 'product_locations'])
-                        ->whereNull('type')  // Assuming raw materials are those with null type
-                        ->select('products.id', 'products.name', 'products.alert_quantity', 'products.unit_id', 'products.brand_id', 'products.enable_stock');
-
-        $products = $query->get();
-
-        $data = Datatables::of($products)
-            ->addColumn('unit', function ($row) {
-                return $row->unit->short_name ?? '';
-            })
-            ->addColumn('brand', function ($row) {
-                return $row->brand->name ?? '';
-            })
-            ->addColumn('product_locations', function ($row) {
-                return $row->product_locations->pluck('name')->implode(', ');
-            })
-            ->addColumn('enable_stock', function ($row) {
-                return $row->enable_stock ? __('messages.yes') : __('messages.no');
-            })
-            ->addColumn('action', function ($row) {
-                $html = '<div class="btn-group">';
-                if (auth()->user()->can("product.update")) {
-                    $html .= '<a href="' . action([\App\Http\Controllers\ProductController::class, 'edit'], [$row->id]) . '" class="btn btn-xs btn-primary"><i class="fa fa-edit"></i> ' . __("messages.edit") . '</a>';
-                }
-                if (auth()->user()->can("product.delete")) {
-                    $html .= '<button data-href="' . action([\App\Http\Controllers\ProductController::class, 'destroy'], [$row->id]) . '" class="btn btn-xs btn-danger delete_product_button"><i class="fa fa-trash"></i> ' . __("messages.delete") . '</button>';
-                }
-                $html .= '</div>';
-                return $html;
-            })
-            ->rawColumns(['action', 'enable_stock']);
-
-        $response = $data->make(true);
-        
-        // Add debug information to the response
-        $debugInfo = [
-            'total_raw_materials' => $products->count(),
-            'sql_query' => $query->toSql(),
-            'sql_bindings' => $query->getBindings()
-        ];
-
-        // Merge debug info into the existing response data
-        $responseData = json_decode($response->getContent(), true);
-        $responseData['debug_info'] = $debugInfo;
-
-        return response()->json($responseData);
-    }
-
-    return view('product.index');
-}
 
     /**
      * Show the form for creating a new resource.

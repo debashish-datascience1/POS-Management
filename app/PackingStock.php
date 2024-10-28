@@ -8,7 +8,7 @@ class PackingStock extends Model
 {
     protected $table = 'packing_stock';
     
-    protected $fillable = ['location_id', 'total'];
+    protected $fillable = ['location_id', 'total', 'production_unit_id'];
 
     public function location()
     {

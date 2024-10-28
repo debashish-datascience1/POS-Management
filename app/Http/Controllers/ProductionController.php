@@ -187,7 +187,12 @@ class ProductionController extends Controller
     //                 ]
     //             );
 
-    //             // $total_production_stock += $production_stock->total_raw_material;
+    //             // Fetch the updated total_raw_material value
+    //             $updated_production_stock = ProductionStock::where('product_id', $product_id)
+    //                 ->where('location_id', $validated['location_id'])
+    //                 ->first();
+
+    //             $total_production_stock += $updated_production_stock->total_raw_material;
 
     //             // Update stock in variation_location_details
     //             $variation = Product::where('id', $product_id)
@@ -209,8 +214,8 @@ class ProductionController extends Controller
     //                 }
     //             }
     //         }
-    //         $total_production_stock += $production_stock->total_raw_material;
 
+    //         // Update or create packing_stock
     //         PackingStock::updateOrCreate(
     //             ['location_id' => $validated['location_id']],
     //             ['total' => $total_production_stock]
@@ -265,6 +270,8 @@ class ProductionController extends Controller
 
     //         DB::beginTransaction();
 
+    //         $total_production_stock = 0;
+
     //         // Process each product
     //         foreach ($validated['product_id'] as $key => $product_id) {
     //             $old_raw_material = $production_unit->raw_material[$key] ?? 0;
@@ -287,6 +294,13 @@ class ProductionController extends Controller
     //                 'location_id' => $validated['location_id'],
     //             ]);
 
+    //             // Fetch the updated total_raw_material value
+    //             $updated_production_stock = ProductionStock::where('product_id', $product_id)
+    //                 ->where('location_id', $validated['location_id'])
+    //                 ->first();
+
+    //             $total_production_stock += $updated_production_stock->total_raw_material;
+
     //             // Update the stock
     //             $this->updateStock($product_id, $old_raw_material, '+', $validated['location_id']); // Add back old quantity
     //             $this->updateStock($product_id, $new_raw_material, '-', $validated['location_id']); // Subtract new quantity
@@ -300,6 +314,12 @@ class ProductionController extends Controller
     //         $production_unit->raw_material = $validated['raw_material'];
     //         $production_unit->total_quantity = $validated['total_quantity'];
     //         $production_unit->save();
+
+    //         // Update packing_stock
+    //         PackingStock::updateOrCreate(
+    //             ['location_id' => $validated['location_id']],
+    //             ['total' => $total_production_stock]
+    //         );
 
     //         DB::commit();
 
@@ -324,26 +344,6 @@ class ProductionController extends Controller
     //         } else {
     //             return redirect()->back()->withInput()->with('status', $output);
     //         }
-    //     }
-    // }
-
-    // private function updateProductionStock($data)
-    // {
-    //     $productionStock = ProductionStock::where('product_id', $data['product_id'])
-    //         ->where('location_id', $data['location_id'])
-    //         ->first();
-
-    //     if ($productionStock) {
-    //         // If record exists, update it by replacing the old value with the new one
-    //         $productionStock->total_raw_material = $productionStock->total_raw_material - floatval($data['old_raw_material']) + floatval($data['new_raw_material']);
-    //         $productionStock->save();
-    //     } else {
-    //         // If record doesn't exist, create a new one with the new value
-    //         ProductionStock::create([
-    //             'product_id' => $data['product_id'],
-    //             'location_id' => $data['location_id'],
-    //             'total_raw_material' => floatval($data['new_raw_material']),
-    //         ]);
     //     }
     // }
 
@@ -386,7 +386,7 @@ class ProductionController extends Controller
             foreach ($validated['product_id'] as $key => $product_id) {
                 $raw_material = $validated['raw_material'][$key];
 
-                // Check if the location exists in variation_location_details
+                // Check if the location exists
                 $locationExists = VariationLocationDetails::where('product_id', $product_id)
                     ->where('location_id', $validated['location_id'])
                     ->exists();
@@ -395,7 +395,7 @@ class ProductionController extends Controller
                     throw new \Exception("Please purchase raw materials for this Business Location first.");
                 }
 
-                // Update or create production_stock
+                // Update production_stock
                 $production_stock = ProductionStock::updateOrCreate(
                     [
                         'product_id' => $product_id,
@@ -406,14 +406,13 @@ class ProductionController extends Controller
                     ]
                 );
 
-                // Fetch the updated total_raw_material value
                 $updated_production_stock = ProductionStock::where('product_id', $product_id)
                     ->where('location_id', $validated['location_id'])
                     ->first();
 
                 $total_production_stock += $updated_production_stock->total_raw_material;
 
-                // Update stock in variation_location_details
+                // Update variation_location_details stock
                 $variation = Product::where('id', $product_id)
                     ->where('business_id', $business_id)
                     ->first()
@@ -434,11 +433,12 @@ class ProductionController extends Controller
                 }
             }
 
-            // Update or create packing_stock
-            PackingStock::updateOrCreate(
-                ['location_id' => $validated['location_id']],
-                ['total' => $total_production_stock]
-            );
+            // Create new packing_stock record
+            PackingStock::create([
+                'location_id' => $validated['location_id'],
+                'total' => $production_unit->total_quantity,
+                'production_unit_id' => $production_unit->id
+            ]);
 
             DB::commit();
 
@@ -457,13 +457,11 @@ class ProductionController extends Controller
 
         if ($request->ajax()) {
             return response()->json($output);
-        } else {
-            if ($output['success']) {
-                return redirect('production/unit')->with('status', $output);
-            } else {
-                return redirect()->back()->withInput()->with('status', $output);
-            }
         }
+        
+        return $output['success'] 
+            ? redirect('production/unit')->with('status', $output)
+            : redirect()->back()->withInput()->with('status', $output);
     }
 
     public function update(Request $request, $id)
@@ -491,12 +489,10 @@ class ProductionController extends Controller
 
             $total_production_stock = 0;
 
-            // Process each product
             foreach ($validated['product_id'] as $key => $product_id) {
                 $old_raw_material = $production_unit->raw_material[$key] ?? 0;
                 $new_raw_material = $validated['raw_material'][$key];
 
-                // Check if the location exists in variation_location_details
                 $locationExists = VariationLocationDetails::where('product_id', $product_id)
                     ->where('location_id', $validated['location_id'])
                     ->exists();
@@ -505,7 +501,7 @@ class ProductionController extends Controller
                     throw new \Exception("Please purchase raw materials for this Business Location first.");
                 }
 
-                // Update production_stock table
+                // Update production_stock
                 $this->updateProductionStock([
                     'product_id' => $product_id,
                     'old_raw_material' => $old_raw_material,
@@ -513,32 +509,31 @@ class ProductionController extends Controller
                     'location_id' => $validated['location_id'],
                 ]);
 
-                // Fetch the updated total_raw_material value
                 $updated_production_stock = ProductionStock::where('product_id', $product_id)
                     ->where('location_id', $validated['location_id'])
                     ->first();
 
                 $total_production_stock += $updated_production_stock->total_raw_material;
 
-                // Update the stock
-                $this->updateStock($product_id, $old_raw_material, '+', $validated['location_id']); // Add back old quantity
-                $this->updateStock($product_id, $new_raw_material, '-', $validated['location_id']); // Subtract new quantity
+                // Update stock
+                $this->updateStock($product_id, $old_raw_material, '+', $validated['location_id']);
+                $this->updateStock($product_id, $new_raw_material, '-', $validated['location_id']);
             }
 
-            // Update the production unit
-            $production_unit->date = $validated['date'];
-            $production_unit->location_id = $validated['location_id'];
-            $production_unit->name = $validated['liquor'];
-            $production_unit->product_id = $validated['product_id'];
-            $production_unit->raw_material = $validated['raw_material'];
-            $production_unit->total_quantity = $validated['total_quantity'];
-            $production_unit->save();
+            // Update production unit
+            $production_unit->update([
+                'date' => $validated['date'],
+                'location_id' => $validated['location_id'],
+                'name' => $validated['liquor'],
+                'product_id' => $validated['product_id'],
+                'raw_material' => $validated['raw_material'],
+                'total_quantity' => $validated['total_quantity']
+            ]);
 
-            // Update packing_stock
-            PackingStock::updateOrCreate(
-                ['location_id' => $validated['location_id']],
-                ['total' => $total_production_stock]
-            );
+            // Update existing packing_stock record
+            PackingStock::where('production_unit_id', $id)->update([
+                'total' => $validated['total_quantity']
+            ]);
 
             DB::commit();
 
@@ -557,13 +552,11 @@ class ProductionController extends Controller
 
         if ($request->ajax()) {
             return response()->json($output);
-        } else {
-            if ($output['success']) {
-                return redirect('production/unit')->with('status', $output);
-            } else {
-                return redirect()->back()->withInput()->with('status', $output);
-            }
         }
+        
+        return $output['success'] 
+            ? redirect('production/unit')->with('status', $output)
+            : redirect()->back()->withInput()->with('status', $output);
     }
 
     private function updateProductionStock($data)
@@ -630,111 +623,6 @@ class ProductionController extends Controller
         return 0;
     }
 
-    // public function update(Request $request, $id)
-    // {
-    //     try {
-    //         if (!auth()->user()->can('production.update')) {
-    //             abort(403, 'Unauthorized action.');
-    //         }
-
-    //         $validated = $request->validate([
-    //             'date' => 'required|date',
-    //             'raw_material' => 'required|array',
-    //             'raw_material.*' => 'required|numeric',
-    //             'product_id' => 'required|array',
-    //             'product_id.*' => 'required|exists:products,id',
-    //             'location_id' => 'required|exists:business_locations,id',
-    //             'liquor' => 'required|string',
-    //             'total_quantity' => 'required|numeric',
-    //         ]);
-
-    //         $business_id = $request->session()->get('user.business_id');
-    //         $production_unit = ProductionUnit::where('business_id', $business_id)->findOrFail($id);
-
-    //         DB::beginTransaction();
-
-    //         // Process each product
-    //         foreach ($validated['product_id'] as $key => $product_id) {
-    //             $old_raw_material = $production_unit->raw_material[$key] ?? 0;
-    //             $new_raw_material = $validated['raw_material'][$key];
-
-    //             // Check if the location exists in variation_location_details
-    //             $locationExists = VariationLocationDetails::where('product_id', $product_id)
-    //                 ->where('location_id', $validated['location_id'])
-    //                 ->exists();
-
-    //             if (!$locationExists) {
-    //                 throw new \Exception("Please purchase raw materials for this Business Location first.");
-    //             }
-
-    //             // Update production_stock table
-    //             $this->updateProductionStock([
-    //                 'product_id' => $product_id,
-    //                 'old_raw_material' => $old_raw_material,
-    //                 'new_raw_material' => $new_raw_material,
-    //                 'location_id' => $validated['location_id'],
-    //             ]);
-
-    //             // Update the stock
-    //             $this->updateStock($product_id, $old_raw_material, '+', $validated['location_id']); // Add back old quantity
-    //             $this->updateStock($product_id, $new_raw_material, '-', $validated['location_id']); // Subtract new quantity
-    //         }
-
-    //         // Update the production unit
-    //         $production_unit->date = $validated['date'];
-    //         $production_unit->location_id = $validated['location_id'];
-    //         $production_unit->name = $validated['liquor'];
-    //         $production_unit->product_id = $validated['product_id'];
-    //         $production_unit->raw_material = $validated['raw_material'];
-    //         $production_unit->total_quantity = $validated['total_quantity'];
-    //         $production_unit->save();
-
-    //         DB::commit();
-
-    //         $output = [
-    //             'success' => true,
-    //             'msg' => __("production.production_update_success")
-    //         ];
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         Log::error('ProductionController@update: ' . $e->getMessage());
-    //         $output = [
-    //             'success' => false,
-    //             'msg' => $e->getMessage()
-    //         ];
-    //     }
-
-    //     if ($request->ajax()) {
-    //         return response()->json($output);
-    //     } else {
-    //         if ($output['success']) {
-    //             return redirect('production/unit')->with('status', $output);
-    //         } else {
-    //             return redirect()->back()->withInput()->with('status', $output);
-    //         }
-    //     }
-    // }
-
-    // private function updateProductionStock($data)
-    // {
-    //     $productionStock = ProductionStock::where('product_id', $data['product_id'])
-    //         ->where('location_id', $data['location_id'])
-    //         ->first();
-
-    //     if ($productionStock) {
-    //         // If record exists, update it by replacing the old value with the new one
-    //         $productionStock->total_raw_material = $productionStock->total_raw_material - floatval($data['old_raw_material']) + floatval($data['new_raw_material']);
-    //         $productionStock->save();
-    //     } else {
-    //         // If record doesn't exist, create a new one with the new value
-    //         ProductionStock::create([
-    //             'product_id' => $data['product_id'],
-    //             'location_id' => $data['location_id'],
-    //             'total_raw_material' => floatval($data['new_raw_material']),
-    //         ]);
-    //     }
-    // }
-
     private function updateStock($product_id, $quantity, $operation, $location_id)
     {
         $variation = Product::where('id', $product_id)
@@ -760,6 +648,7 @@ class ProductionController extends Controller
             }
         }
     }
+    
     // public function destroy($id)
     // {
     //     if (!auth()->user()->can('production.delete')) {
@@ -772,20 +661,27 @@ class ProductionController extends Controller
 
     //         DB::beginTransaction();
 
-    //         // The raw_material field is already an array, no need to json_decode
     //         $raw_materials = $production_unit->raw_material;
+    //         $location_id = $production_unit->location_id;
 
     //         foreach ($raw_materials as $key => $quantity) {
     //             $product_id = $production_unit->product_id[$key];
 
     //             // Update production_stock
     //             ProductionStock::where('product_id', $product_id)
-    //                 ->where('location_id', $production_unit->location_id)
+    //                 ->where('location_id', $location_id)
     //                 ->decrement('total_raw_material', $quantity);
 
     //             // Restore stock in variation_location_details
-    //             $this->updateStock($product_id, $quantity, '+', $production_unit->location_id);
+    //             $this->updateStock($product_id, $quantity, '+', $location_id);
     //         }
+
+    //         // Update packing_stock
+    //         $total_production_stock = ProductionStock::where('location_id', $location_id)->sum('total_raw_material');
+    //         PackingStock::updateOrCreate(
+    //             ['location_id' => $location_id],
+    //             ['total' => $total_production_stock]
+    //         );
 
     //         $production_unit->delete();
 
@@ -829,16 +725,12 @@ class ProductionController extends Controller
                     ->where('location_id', $location_id)
                     ->decrement('total_raw_material', $quantity);
 
-                // Restore stock in variation_location_details
+                // Restore stock
                 $this->updateStock($product_id, $quantity, '+', $location_id);
             }
 
-            // Update packing_stock
-            $total_production_stock = ProductionStock::where('location_id', $location_id)->sum('total_raw_material');
-            PackingStock::updateOrCreate(
-                ['location_id' => $location_id],
-                ['total' => $total_production_stock]
-            );
+            // Delete associated packing_stock record
+            PackingStock::where('production_unit_id', $id)->delete();
 
             $production_unit->delete();
 
