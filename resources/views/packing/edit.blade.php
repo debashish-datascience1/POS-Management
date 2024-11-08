@@ -74,8 +74,6 @@
                                     {!! Form::label('quantities[]', __('lang_v1.quantity') . ':') !!}
                                     {!! Form::text('quantities[]', $quantities[$index], [
                                         'class' => 'form-control quantity-input',
-                                        'readonly',
-                                        'style' => 'background-color: #eee;',
                                     ]) !!}
                                 </div>
                             </div>

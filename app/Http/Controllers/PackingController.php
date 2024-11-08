@@ -294,100 +294,7 @@ class PackingController extends Controller
             ]);
         }
     }
-
-    // public function store(Request $request)
-    // {
-    //     if (!auth()->user()->can('packing.create')) {
-    //         abort(403, 'Unauthorized action.');
-    //     }
-
-    //     try {
-    //         DB::beginTransaction();
-
-    //         $input = $request->validate([
-    //             'product_output' => 'required|numeric',
-    //             'mix' => 'required|numeric|min:0',
-    //             'jar' => 'nullable|array',
-    //             'jar.*.size' => 'required_with:jar|in:5L,10L,20L',
-    //             'jar.*.quantity' => 'required_with:jar|integer|min:1',
-    //             'jar.*.price' => 'required_with:jar|numeric|min:0',
-    //             'packet' => 'nullable|array',
-    //             'packet.*.size' => 'required_with:packet|in:100ML,200ML,500ML',
-    //             'packet.*.quantity' => 'required_with:packet|integer|min:1',
-    //             'packet.*.price' => 'required_with:packet|numeric|min:0',
-    //             'total' => 'required|numeric',
-    //             'grand_total' => 'required|numeric',
-    //             'date' => 'required|date',
-    //             'location_id' => 'required|exists:business_locations,id',
-    //         ]);
-
-    //         $input['business_id'] = $request->session()->get('user.business_id');
-
-    //         // Convert jar array to a formatted string
-    //         $jarData = [];
-    //         if (!empty($input['jar'])) {
-    //             foreach ($input['jar'] as $jar) {
-    //                 $jarData[] = $jar['size'] . ':' . $jar['quantity'] . ':' . $jar['price'];
-    //             }
-    //             $input['jar'] = implode(',', $jarData);
-    //         } else {
-    //             $input['jar'] = null;
-    //         }
-
-    //         // Convert packet array to a formatted string
-    //         $packetData = [];
-    //         if (!empty($input['packet'])) {
-    //             foreach ($input['packet'] as $packet) {
-    //                 $packetData[] = $packet['size'] . ':' . $packet['quantity'] . ':' . $packet['price'];
-    //             }
-    //             $input['packet'] = implode(',', $packetData);
-    //         } else {
-    //             $input['packet'] = null;
-    //         }
-
-    //         // Ensure at least one of jar or packet is provided
-    //         if (empty($input['jar']) && empty($input['packet'])) {
-    //             throw new ValidationException(Validator::make([], []), [
-    //                 'jar_or_packet' => ['Either jar or packet must be provided.']
-    //             ]);
-    //         }
-
-    //         // Remove product_id from the input array as it's no longer needed
-    //         unset($input['product_id']);
-
-    //         $packing = Packing::create($input);
-
-    //         $packingStock = PackingStock::where('location_id', $request->location_id)->first();
-    //         if (!$packingStock || $packingStock->total < $request->product_output) {
-    //             throw new Exception('Insufficient stock available');
-    //         }
-
-    //         // Update the packing stock
-    //         $packingStock->total -= $request->product_output;
-    //         $packingStock->save();
-
-    //         DB::commit();
-
-    //         $output = [
-    //             'success' => true,
-    //             'msg' => __('lang_v1.packing_added_successfully')
-    //         ];
-
-    //     } catch (ValidationException $e) {
-    //         DB::rollBack();
-    //         return redirect()->back()->withErrors($e->errors())->withInput();
-    //     } catch (Exception $e) {
-    //         DB::rollBack();
-    //         Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
-
-    //         $output = [
-    //             'success' => false,
-    //             'msg' => __('messages.something_went_wrong')
-    //         ];
-    //     }
-
-    //     return redirect()->action([\App\Http\Controllers\PackingController::class, 'index'])->with('status', $output);
-    // }
+    
     public function store(Request $request)
     {
         if (!auth()->user()->can('packing.create')) {
@@ -557,70 +464,119 @@ class PackingController extends Controller
             DB::beginTransaction();
 
             $input = $request->validate([
-                'product_output' => 'required|numeric',
-                'mix' => 'required|numeric|min:0',
-                'jar' => 'nullable|array',
-                'jar.*.size' => 'required_with:jar|in:5L,10L,20L',
-                'jar.*.quantity' => 'required_with:jar|integer|min:1',
-                'jar.*.price' => 'required_with:jar|numeric|min:0',
-                'packet' => 'nullable|array',
-                'packet.*.size' => 'required_with:packet|in:100ML,200ML,500ML',
-                'packet.*.quantity' => 'required_with:packet|integer|min:1',
-                'packet.*.price' => 'required_with:packet|numeric|min:0',
-                'total' => 'required|numeric',
-                'grand_total' => 'required|numeric',
                 'date' => 'required|date',
                 'location_id' => 'required|exists:business_locations,id',
+                'temperatures' => 'required|array',
+                'temperatures.*' => 'required|string',
+                'quantities' => 'required|array',
+                'quantities.*' => 'required|numeric|min:0',
+                'mix' => 'required|array',
+                'mix.*' => 'required|numeric|min:0',
+                'total' => 'required|array',
+                'total.*' => 'required|numeric|min:0',
+                'jars' => 'nullable|array',
+                'jars.*' => 'array',
+                'jars.*.*' => 'array',
+                'jars.*.*.size' => 'required|in:5L,10L,20L',
+                'jars.*.*.quantity' => 'required|integer|min:1',
+                'jars.*.*.price' => 'required|numeric|min:0',
+                'packets' => 'nullable|array',
+                'packets.*' => 'array',
+                'packets.*.*' => 'array',
+                'packets.*.*.size' => 'required|in:100ML,200ML,500ML',
+                'packets.*.*.quantity' => 'required|integer|min:1',
+                'packets.*.*.price' => 'required|numeric|min:0',
+                'grand_total' => 'required|numeric|min:0',
             ]);
 
             $packing = Packing::findOrFail($id);
+            $business_id = $request->session()->get('user.business_id');
 
-            // Convert jar array to a formatted string
-            $jarData = [];
-            if (!empty($input['jar'])) {
-                foreach ($input['jar'] as $jar) {
-                    $jarData[] = $jar['size'] . ':' . $jar['quantity'] . ':' . $jar['price'];
+            // Get old temperatures and quantities
+            $old_temperatures = json_decode($packing->temperature, true);
+            $old_quantities = json_decode($packing->quantity, true);
+
+            // Prepare arrays for the new data
+            $temperatures_array = [];
+            $quantities_array = [];
+            $mix_array = [];
+            $total_array = [];
+            $jars_array = [];
+            $packets_array = [];
+
+            // Process each section
+            for ($i = 0; $i < count($input['temperatures']); $i++) {
+                $current_temp = $input['temperatures'][$i];
+                $new_quantity = $input['quantities'][$i];
+                
+                // Find the old quantity for this temperature if it exists
+                $old_quantity = 0;
+                $old_temp_index = array_search($current_temp, $old_temperatures);
+                if ($old_temp_index !== false) {
+                    $old_quantity = $old_quantities[$old_temp_index];
                 }
-                $input['jar'] = implode(',', $jarData);
-            } else {
-                $input['jar'] = null;
-            }
 
-            // Convert packet array to a formatted string
-            $packetData = [];
-            if (!empty($input['packet'])) {
-                foreach ($input['packet'] as $packet) {
-                    $packetData[] = $packet['size'] . ':' . $packet['quantity'] . ':' . $packet['price'];
+                // Calculate the difference in quantity
+                $quantity_difference = $new_quantity - $old_quantity;
+
+                // Update temperature stock
+                $temperature = Temperature::where('temperature', $current_temp)->first();
+                if (!$temperature) {
+                    throw new Exception("Temperature {$current_temp} not found");
                 }
-                $input['packet'] = implode(',', $packetData);
-            } else {
-                $input['packet'] = null;
+
+                if ($quantity_difference > 0 && $temperature->temp_quantity < $quantity_difference) {
+                    throw new Exception("Insufficient quantity available for temperature {$current_temp}");
+                }
+
+                // Update the temperature quantity
+                $temperature->temp_quantity -= $quantity_difference;
+                $temperature->save();
+
+                // Format jar data for this section
+                $jarData = [];
+                if (!empty($input['jars'][$i])) {
+                    foreach ($input['jars'][$i] as $jar) {
+                        $jarData[] = $jar['size'] . ':' . $jar['quantity'] . ':' . $jar['price'];
+                    }
+                }
+
+                // Format packet data for this section
+                $packetData = [];
+                if (!empty($input['packets'][$i])) {
+                    foreach ($input['packets'][$i] as $packet) {
+                        $packetData[] = $packet['size'] . ':' . $packet['quantity'] . ':' . $packet['price'];
+                    }
+                }
+
+                // Ensure at least one of jar or packet is provided for each section
+                if (empty($jarData) && empty($packetData)) {
+                    throw new ValidationException(Validator::make([], []), [
+                        'jar_or_packet' => ["Either jar or packet must be provided for temperature {$current_temp}"]
+                    ]);
+                }
+
+                // Store section data in arrays
+                $temperatures_array[] = $current_temp;
+                $quantities_array[] = $new_quantity;
+                $mix_array[] = $input['mix'][$i];
+                $total_array[] = $input['total'][$i];
+                $jars_array[] = !empty($jarData) ? implode(',', $jarData) : null;
+                $packets_array[] = !empty($packetData) ? implode(',', $packetData) : null;
             }
 
-            // Ensure at least one of jar or packet is provided
-            if (empty($input['jar']) && empty($input['packet'])) {
-                throw new ValidationException(Validator::make([], []), [
-                    'jar_or_packet' => ['Either jar or packet must be provided.']
-                ]);
-            }
-
-            $packingStock = PackingStock::where('location_id', $input['location_id'])->first();
-            if (!$packingStock) {
-                throw new Exception("PackingStock not found for the given location.");
-            }
-
-            $oldProductOutput = $packing->product_output;
-            $newProductOutput = $input['product_output'];
-            $difference = $newProductOutput - $oldProductOutput;
-
-            if ($difference > 0 && $packingStock->total < $difference) {
-                throw new Exception("Insufficient stock available in packing stock.");
-            }
-
-            $packingStock->total -= $difference;
-            $packingStock->save();
-
-            $packing->update($input);
+            // Update the packing record
+            $packing->update([
+                'date' => $input['date'],
+                'location_id' => $input['location_id'],
+                'temperature' => json_encode($temperatures_array),
+                'quantity' => json_encode($quantities_array),
+                'mix' => json_encode($mix_array),
+                'total' => json_encode($total_array),
+                'jar' => json_encode($jars_array),
+                'packet' => json_encode($packets_array),
+                'grand_total' => $input['grand_total']
+            ]);
 
             DB::commit();
 
@@ -631,15 +587,14 @@ class PackingController extends Controller
         } catch (ValidationException $e) {
             DB::rollBack();
             Log::error("Validation failed: " . json_encode($e->errors()));
-
             return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (Exception $e) {
             DB::rollBack();
             Log::emergency("File:" . $e->getFile() . "Line:" . $e->getLine() . "Message:" . $e->getMessage());
-
+            
             $output = [
                 'success' => false,
-                'msg' => __('messages.something_went_wrong')
+                'msg' => $e->getMessage() ?: __('messages.something_went_wrong')
             ];
         }
 
@@ -658,15 +613,22 @@ class PackingController extends Controller
 
             DB::beginTransaction();
 
-            $packingStock = PackingStock::where('location_id', $packing->location_id)->first();
+            // Get the temperatures and quantities from the JSON stored in the packing record
+            $temperatures = json_decode($packing->temperature, true);
+            $quantities = json_decode($packing->quantity, true);
 
-            if (!$packingStock) {
-                throw new Exception("PackingStock not found for the given location.");
+            // Restore the temperature quantities
+            for ($i = 0; $i < count($temperatures); $i++) {
+                $temperature = Temperature::where('temperature', $temperatures[$i])->first();
+                
+                if (!$temperature) {
+                    throw new Exception("Temperature {$temperatures[$i]} not found");
+                }
+
+                // Add back the quantity that was used
+                $temperature->temp_quantity += $quantities[$i];
+                $temperature->save();
             }
-
-            // Restore the stock
-            $packingStock->total += $packing->product_output;
-            $packingStock->save();
 
             // Delete the packing record
             $packing->delete();

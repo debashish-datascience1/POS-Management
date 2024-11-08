@@ -41,7 +41,7 @@
                     <div class="row">
                         <div class="col-sm-4">
                             <div class="form-group">
-                                {!! Form::label('temperatures[]', __('temperature.temperature') . ':*') !!}
+                                {!! Form::label('temperatures[]', __('lang_v1.temperature') . ':*') !!}
                                 <select name="temperatures[]" class="form-control temperature-select" required>
                                     <option value="">@lang('messages.please_select')</option>
                                     @foreach ($temperatures as $key => $value)
@@ -55,8 +55,6 @@
                                 {!! Form::label('quantity[]', __('lang_v1.quantity') . ':') !!}
                                 {!! Form::text('quantity[]', null, [
                                     'class' => 'form-control quantity-input',
-                                    'readonly',
-                                    'style' => 'background-color: #eee;',
                                 ]) !!}
                             </div>
                         </div>
