@@ -100,7 +100,19 @@ class PackingController extends Controller
             $business_id = request()->session()->get('user.business_id');
 
             $packings = Packing::where('business_id', $business_id)
-                ->select(['id', 'date', 'temperature', 'quantity', 'mix', 'total', 'jar', 'packet', 'grand_total', 'created_at']);
+                ->select([
+                    'id', 
+                    'date', 
+                    'temperature', 
+                    'product_temperature', 
+                    'quantity', 
+                    'mix', 
+                    'total', 
+                    'jar', 
+                    'packet', 
+                    'grand_total', 
+                    'created_at'
+                ]);
 
             return DataTables::of($packings)
                 ->addColumn('action', function ($row) {
@@ -124,6 +136,16 @@ class PackingController extends Controller
                         return implode('<br>', array_map(function ($temp) {
                             return is_numeric($temp) ? number_format((float)$temp, 1) . '°C' : '0.0°C';
                         }, $temps ?: []));
+                    } catch (\Exception $e) {
+                        return '0.0°C';
+                    }
+                })
+                ->editColumn('product_temperature', function ($row) {
+                    try {
+                        $productTemps = is_array($row->product_temperature) ? $row->product_temperature : (is_string($row->product_temperature) ? json_decode($row->product_temperature, true) : []);
+                        return implode('<br>', array_map(function ($temp) {
+                            return is_numeric($temp) ? number_format((float)$temp, 1) . '°C' : '0.0°C';
+                        }, $productTemps ?: []));
                     } catch (\Exception $e) {
                         return '0.0°C';
                     }
@@ -170,33 +192,64 @@ class PackingController extends Controller
                 })
                 ->editColumn('date', '{{@format_date($date)}}')
                 ->editColumn('created_at', '{{@format_datetime($created_at)}}')
-                ->rawColumns(['action', 'temperature', 'quantity', 'mix', 'total', 'jar', 'packet'])
+                ->rawColumns([
+                    'action', 
+                    'temperature', 
+                    'product_temperature', 
+                    'quantity', 
+                    'mix', 
+                    'total', 
+                    'jar', 
+                    'packet'
+                ])
                 ->make(true);
         }
 
         return view('packing.index');
     }
 
+    // public function create()
+    // {
+    //     if (!auth()->user()->can('packing.create')) {
+    //         abort(403, 'Unauthorized action.');
+    //     }
+
+    //     $business_id = request()->session()->get('user.business_id');
+    //     $business_locations = BusinessLocation::forDropdown($business_id, false, true);
+    //     $bl_attributes = $business_locations['attributes'];
+    //     $business_locations = $business_locations['locations'];
+
+    //     $temperatures = Temperature::select('temperature')
+    //         ->distinct()
+    //         ->pluck('temperature', 'temperature');
+
+    //     return view('packing.create', compact(
+    //         'business_locations',
+    //         'bl_attributes',
+    //         'temperatures'
+    //     ));
+    // }
+
     public function create()
-    {
-        if (!auth()->user()->can('packing.create')) {
-            abort(403, 'Unauthorized action.');
-        }
-
-        $business_id = request()->session()->get('user.business_id');
-        $business_locations = BusinessLocation::forDropdown($business_id, false, true);
-        $bl_attributes = $business_locations['attributes'];
-        $business_locations = $business_locations['locations'];
-
-        $temperatures = Temperature::select('temperature')
-            ->distinct()
-            ->pluck('temperature', 'temperature');
-
-        return view('packing.create', compact(
-            'business_locations',
-            'bl_attributes',
-            'temperatures'
-        ));
+    {     
+        if (!auth()->user()->can('packing.create')) {         
+            abort(403, 'Unauthorized action.');     
+        }     
+        $business_id = request()->session()->get('user.business_id');     
+        $business_locations = BusinessLocation::forDropdown($business_id, false, true);     
+        $bl_attributes = $business_locations['attributes'];     
+        $business_locations = $business_locations['locations'];     
+        $temperatures = Temperature::select('temperature')         
+            ->distinct()         
+            ->pluck('temperature', 'temperature');     
+        $product_temperatures = DB::table('temperature_fixed')
+            ->pluck('temperature', 'temperature');     
+        return view('packing.create', compact(         
+            'business_locations',         
+            'bl_attributes',         
+            'temperatures',         
+            'product_temperatures'     
+        )); 
     }
 
     public function getTemperatureQuantity(Request $request)
@@ -309,6 +362,8 @@ class PackingController extends Controller
                 'location_id' => 'required|exists:business_locations,id',
                 'temperatures' => 'required|array',
                 'temperatures.*' => 'required|string',
+                'product_temperature' => 'required|array', 
+                'product_temperature.*' => 'required|string', 
                 'quantity' => 'required|array',
                 'quantity.*' => 'required|numeric|min:0',
                 'mix' => 'required|array',
@@ -318,13 +373,13 @@ class PackingController extends Controller
                 'jars' => 'nullable|array',
                 'jars.*' => 'array',
                 'jars.*.*' => 'array',
-                'jars.*.*.size' => 'required|in:5L,10L,20L',
+                'jars.*.*.size' => 'required|in:5L,5L(sp),10L,10L(sp),20L,20L(sp)',
                 'jars.*.*.quantity' => 'required|integer|min:1',
                 'jars.*.*.price' => 'required|numeric|min:0',
                 'packets' => 'nullable|array',
                 'packets.*' => 'array',
                 'packets.*.*' => 'array',
-                'packets.*.*.size' => 'required|in:100ML,200ML,500ML',
+                'packets.*.*.size' => 'required|in:100ML,100ML(sp),200ML,200ML(sp),500ML,500ML(sp)',
                 'packets.*.*.quantity' => 'required|integer|min:1',
                 'packets.*.*.price' => 'required|numeric|min:0',
                 'grand_total' => 'required|numeric|min:0',
@@ -334,6 +389,7 @@ class PackingController extends Controller
 
             // Prepare arrays to store section data
             $temperatures_array = [];
+            $product_temperatures_array = []; // New array for product temperatures
             $quantities_array = [];
             $mix_array = [];
             $total_array = [];
@@ -376,6 +432,7 @@ class PackingController extends Controller
 
                 // Store section data in arrays
                 $temperatures_array[] = $input['temperatures'][$i];
+                $product_temperatures_array[] = $input['product_temperature'][$i]; // Add product temperature
                 $quantities_array[] = $input['quantity'][$i];
                 $mix_array[] = $input['mix'][$i];
                 $total_array[] = $input['total'][$i];
@@ -393,6 +450,7 @@ class PackingController extends Controller
                 'date' => $input['date'],
                 'location_id' => $input['location_id'],
                 'temperature' => json_encode($temperatures_array),
+                'product_temperature' => json_encode($product_temperatures_array), // Add product_temperature to the creation
                 'quantity' => json_encode($quantities_array),
                 'mix' => json_encode($mix_array),
                 'total' => json_encode($total_array),
@@ -424,12 +482,42 @@ class PackingController extends Controller
         return redirect()->action([\App\Http\Controllers\PackingController::class, 'index'])->with('status', $output);
     }
 
+    // public function edit($id)
+    // {
+    //     if (!auth()->user()->can('packing.edit')) {
+    //         abort(403, 'Unauthorized action.');
+    //     }
+    
+    //     $business_id = request()->session()->get('user.business_id');
+    //     $packing = Packing::where('business_id', $business_id)->findOrFail($id);
+        
+    //     // Format the date to yyyy-MM-dd
+    //     $packing->date = date('Y-m-d', strtotime($packing->date));
+        
+    //     $business_locations = BusinessLocation::forDropdown($business_id, false, true);
+    //     $bl_attributes = $business_locations['attributes'];
+    //     $business_locations = $business_locations['locations'];
+    
+    //     // Get temperatures for dropdown and create an associative array
+    //     $temperatures_list = Temperature::select('temperature')
+    //         ->distinct()
+    //         ->pluck('temperature', 'temperature')
+    //         ->toArray();
+    
+    //     return view('packing.edit', compact(
+    //         'packing',
+    //         'business_locations',
+    //         'bl_attributes',
+    //         'temperatures_list'
+    //     ));
+    // }
+
     public function edit($id)
     {
         if (!auth()->user()->can('packing.edit')) {
             abort(403, 'Unauthorized action.');
         }
-    
+
         $business_id = request()->session()->get('user.business_id');
         $packing = Packing::where('business_id', $business_id)->findOrFail($id);
         
@@ -439,18 +527,23 @@ class PackingController extends Controller
         $business_locations = BusinessLocation::forDropdown($business_id, false, true);
         $bl_attributes = $business_locations['attributes'];
         $business_locations = $business_locations['locations'];
-    
+
         // Get temperatures for dropdown and create an associative array
         $temperatures_list = Temperature::select('temperature')
             ->distinct()
             ->pluck('temperature', 'temperature')
             ->toArray();
-    
+
+        // Get product temperatures
+        $product_temperatures = DB::table('temperature_fixed')
+            ->pluck('temperature', 'temperature');
+
         return view('packing.edit', compact(
             'packing',
             'business_locations',
             'bl_attributes',
-            'temperatures_list'
+            'temperatures_list',
+            'product_temperatures'
         ));
     }
 
@@ -472,18 +565,20 @@ class PackingController extends Controller
                 'quantities.*' => 'required|numeric|min:0',
                 'mix' => 'required|array',
                 'mix.*' => 'required|numeric|min:0',
+                'product_temperature' => 'required|array',
+                'product_temperature.*' => 'required|string',
                 'total' => 'required|array',
                 'total.*' => 'required|numeric|min:0',
                 'jars' => 'nullable|array',
                 'jars.*' => 'array',
                 'jars.*.*' => 'array',
-                'jars.*.*.size' => 'required|in:5L,10L,20L',
+                'jars.*.*.size' => 'required|in:5L,5L(sp),10L,10L(sp),20L,20L(sp)',
                 'jars.*.*.quantity' => 'required|integer|min:1',
                 'jars.*.*.price' => 'required|numeric|min:0',
                 'packets' => 'nullable|array',
                 'packets.*' => 'array',
                 'packets.*.*' => 'array',
-                'packets.*.*.size' => 'required|in:100ML,200ML,500ML',
+                'packets.*.*.size' => 'required|in:100ML,100ML(sp),200ML,200ML(sp),500ML,500ML(sp)',
                 'packets.*.*.quantity' => 'required|integer|min:1',
                 'packets.*.*.price' => 'required|numeric|min:0',
                 'grand_total' => 'required|numeric|min:0',
@@ -503,6 +598,7 @@ class PackingController extends Controller
             $total_array = [];
             $jars_array = [];
             $packets_array = [];
+            $product_temperatures_array = []; // New array for product temperatures
 
             // Process each section
             for ($i = 0; $i < count($input['temperatures']); $i++) {
@@ -563,6 +659,7 @@ class PackingController extends Controller
                 $total_array[] = $input['total'][$i];
                 $jars_array[] = !empty($jarData) ? implode(',', $jarData) : null;
                 $packets_array[] = !empty($packetData) ? implode(',', $packetData) : null;
+                $product_temperatures_array[] = $input['product_temperature'][$i]; // Add product temperature
             }
 
             // Update the packing record
@@ -575,6 +672,7 @@ class PackingController extends Controller
                 'total' => json_encode($total_array),
                 'jar' => json_encode($jars_array),
                 'packet' => json_encode($packets_array),
+                'product_temperature' => json_encode($product_temperatures_array), // Add product temperature
                 'grand_total' => $input['grand_total']
             ]);
 

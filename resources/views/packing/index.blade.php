@@ -23,7 +23,8 @@
                 <thead>
                     <tr>
                         <th>@lang('messages.date')</th>
-                        <th>@lang('temperature.temperature')</th>
+                        <th>@lang('lang_v1.temperature')</th>
+                        <th>@lang('lang_v1.product_temperature')</th>
                         <th>@lang('lang_v1.quantity')</th>
                         <th>@lang('lang_v1.mix')</th>
                         <th>@lang('lang_v1.total')</th>
@@ -52,6 +53,7 @@ $(document).ready(function() {
         columns: [
             { data: 'date', name: 'date' },
             { data: 'temperature', name: 'temperature' },
+            { data: 'product_temperature', name: 'product_temperature' },
             { data: 'quantity', name: 'quantity' },
             { data: 'mix', name: 'mix' },
             { data: 'total', name: 'total' },

@@ -437,7 +437,8 @@ class ProductionController extends Controller
             PackingStock::create([
                 'location_id' => $validated['location_id'],
                 'total' => $production_unit->total_quantity,
-                'production_unit_id' => $production_unit->id
+                'production_unit_id' => $production_unit->id,
+                'date' => $validated['date']
             ]);
 
             DB::commit();
@@ -532,7 +533,8 @@ class ProductionController extends Controller
 
             // Update existing packing_stock record
             PackingStock::where('production_unit_id', $id)->update([
-                'total' => $validated['total_quantity']
+                'total' => $validated['total_quantity'],
+                'date' => $validated['date']
             ]);
 
             DB::commit();

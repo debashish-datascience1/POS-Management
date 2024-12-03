@@ -39,31 +39,47 @@
             <div class="packing-section">
                 <div class="packing-row">
                     <div class="row">
-                        <div class="col-sm-4">
-                            <div class="form-group">
-                                {!! Form::label('temperatures[]', __('lang_v1.temperature') . ':*') !!}
-                                <select name="temperatures[]" class="form-control temperature-select" required>
-                                    <option value="">@lang('messages.please_select')</option>
-                                    @foreach ($temperatures as $key => $value)
-                                        <option value="{{ $key }}">{{ $value }}</option>
-                                    @endforeach
-                                </select>
+                        <div class="col-sm-12">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        {!! Form::label('temperatures[]', __('lang_v1.temperature') . ':*') !!}
+                                        <select name="temperatures[]" class="form-control temperature-select" required>
+                                            <option value="">@lang('messages.please_select')</option>
+                                            @foreach ($temperatures as $key => $value)
+                                                <option value="{{ $key }}">{{ $value }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        {!! Form::label('quantity[]', __('lang_v1.quantity') . ':') !!}
+                                        {!! Form::text('quantity[]', null, [
+                                            'class' => 'form-control quantity-input',
+                                        ]) !!}
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        {!! Form::label('mix[]', __('lang_v1.mix') . ':*') !!}
+                                        {!! Form::number('mix[]', null, ['class' => 'form-control mix-input', 'required', 'min' => 0, 'step' => 'any']) !!}
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        {!! Form::label('product_temperature[]', __('lang_v1.product_temperature') . ':*') !!}
+                                        {!! Form::select('product_temperature[]', $product_temperatures, null, [
+                                            'class' => 'form-control product-temperature-select',
+                                            'placeholder' => __('messages.please_select'),
+                                            'required',
+                                        ]) !!}
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-sm-4">
-                            <div class="form-group">
-                                {!! Form::label('quantity[]', __('lang_v1.quantity') . ':') !!}
-                                {!! Form::text('quantity[]', null, [
-                                    'class' => 'form-control quantity-input',
-                                ]) !!}
-                            </div>
-                        </div>
-                        <div class="col-sm-4">
-                            <div class="form-group">
-                                {!! Form::label('mix[]', __('lang_v1.mix') . ':*') !!}
-                                {!! Form::number('mix[]', null, ['class' => 'form-control mix-input', 'required', 'min' => 0, 'step' => 'any']) !!}
-                            </div>
-                        </div>
+                    </div>
+                    <div class="row">
                         <div class="col-sm-4">
                             <div class="form-group">
                                 {!! Form::label('total[]', __('lang_v1.total_after_mix') . ':') !!}
@@ -91,8 +107,7 @@
                                         <div class="packet-container">
                                             <!-- Dynamic packet options will be added here -->
                                         </div>
-                                        <button type="button" class="btn btn-primary btn-sm mt-2 add-packet">Add
-                                            Packet</button>
+                                        <button type="button" class="btn btn-primary btn-sm mt-2 add-packet">Add Packet</button>
                                     </div>
                                 </div>
                             </div>
@@ -138,11 +153,11 @@
 @section('javascript')
     <script>
         $(document).ready(function() {
-            const jarOptions = ['5L', '10L', '20L'];
-            const packetOptions = ['100ML', '200ML', '500ML'];
+            const jarOptions = ['5L', '5L(sp)', '10L', '10L(sp)', '20L', '20L(sp)'];
+            const packetOptions = ['100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)'];
 
             function initializeSelect2() {
-                $('.temperature-select').each(function() {
+                $('.temperature-select, .product-temperature-select').each(function() {
                     if (!$(this).hasClass('select2-hidden-accessible')) {
                         $(this).select2({
                             width: '100%'
@@ -157,17 +172,17 @@
                 const html = `
                 <div class="${type}-option mb-2">
                     <div class="row">
-                        <div class="col-sm-4">
+                        <div class="col-sm-3">
                             <label>${type.charAt(0).toUpperCase() + type.slice(1)} Size:</label>
                             <select name="${type}s[${sectionIndex}][${optionIndex}][size]" class="form-control ${type}-size">
                                 ${options.map(option => `<option value="${option}">${option}</option>`).join('')}
                             </select>
                         </div>
-                        <div class="col-sm-3">
+                        <div class="col-sm-2">
                             <label>Quantity:</label>
                             <input type="number" name="${type}s[${sectionIndex}][${optionIndex}][quantity]" class="form-control ${type}-quantity" min="1" value="1">
                         </div>
-                        <div class="col-sm-3">
+                        <div class="col-sm-2">
                             <label>Price:</label>
                             <input type="number" name="${type}s[${sectionIndex}][${optionIndex}][price]" class="form-control ${type}-price" min="0" step="0.01" value="0">
                         </div>
@@ -177,7 +192,7 @@
                         </div>
                     </div>
                 </div>
-            `;
+                `;
                 $container.append(html);
                 calculateGrandTotal();
             }
@@ -221,7 +236,7 @@
 
                 $newSection.find('input').val('');
                 $newSection.find('.select2-container').remove();
-                $newSection.find('.temperature-select').removeClass('select2-hidden-accessible').val('');
+                $newSection.find('.temperature-select, .product-temperature-select').removeClass('select2-hidden-accessible').val('');
 
                 const $jarContainer = $newSection.find('.jar-container').empty();
                 const $packetContainer = $newSection.find('.packet-container').empty();
@@ -339,6 +354,14 @@
             // Form validation
             $('#packing_form').on('submit', function(e) {
                 let isValid = true;
+
+                $('.product-temperature-select').each(function() {
+                    if (!$(this).val()) {
+                        toastr.error('Please select product temperature for all sections');
+                        isValid = false;
+                        return false;
+                    }
+                });
 
                 $('.temperature-select').each(function() {
                     if (!$(this).val()) {

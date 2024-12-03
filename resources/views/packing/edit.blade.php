@@ -45,6 +45,9 @@
                     $temperatures = is_string($packing->temperature)
                         ? json_decode($packing->temperature)
                         : $packing->temperature;
+                    $product_temperatures_data = is_string($packing->product_temperature)
+                        ? json_decode($packing->product_temperature)
+                        : $packing->product_temperature;
                     $quantities = is_string($packing->quantity) ? json_decode($packing->quantity) : $packing->quantity;
                     $mixes = is_string($packing->mix) ? json_decode($packing->mix) : $packing->mix;
                     $totals = is_string($packing->total) ? json_decode($packing->total) : $packing->total;
@@ -57,7 +60,7 @@
                         <div class="row">
                             <div class="col-sm-4">
                                 <div class="form-group">
-                                    {!! Form::label('temperatures[]', __('temperature.temperature') . ':*') !!}
+                                    {!! Form::label('temperatures[]', __('lang_v1.temperature') . ':*') !!}
                                     <select name="temperatures[]" class="form-control temperature-select" required>
                                         <option value="">@lang('messages.please_select')</option>
                                         @foreach ($temperatures_list as $key => $value)
@@ -86,6 +89,18 @@
                                         'min' => 0,
                                         'step' => 'any',
                                     ]) !!}
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    {!! Form::label('product_temperature[]', __('lang_v1.product_temperature') . ':*') !!}
+                                    {!! Form::select('product_temperature[]', $product_temperatures, 
+                                        isset($product_temperatures_data[$index]) ? $product_temperatures_data[$index] : null, 
+                                        [
+                                            'class' => 'form-control product-temperature-select',
+                                            'placeholder' => __('messages.please_select'),
+                                            'required',
+                                        ]) !!}
                                 </div>
                             </div>
                             <div class="col-sm-4">
@@ -126,10 +141,16 @@
                                                                         class="form-control jar-size">
                                                                         <option value="5L"
                                                                             {{ $size == '5L' ? 'selected' : '' }}>5L</option>
+                                                                        <option value="5L(sp)"
+                                                                            {{ $size == '5L(sp)' ? 'selected' : '' }}>5L(sp)</option>
                                                                         <option value="10L"
                                                                             {{ $size == '10L' ? 'selected' : '' }}>10L</option>
+                                                                        <option value="10L(sp)"
+                                                                            {{ $size == '10L(sp)' ? 'selected' : '' }}>10L(sp)</option>
                                                                         <option value="20L"
                                                                             {{ $size == '20L' ? 'selected' : '' }}>20L</option>
+                                                                        <option value="20L(sp)"
+                                                                            {{ $size == '20L(sp)' ? 'selected' : '' }}>20L(sp)</option>
                                                                     </select>
                                                                 </div>
                                                                 <div class="col-sm-3">
@@ -187,14 +208,17 @@
                                                                         name="packets[{{ $index }}][{{ $loop->index }}][size]"
                                                                         class="form-control packet-size">
                                                                         <option value="100ML"
-                                                                            {{ $size == '100ML' ? 'selected' : '' }}>100ML
-                                                                        </option>
+                                                                            {{ $size == '100ML' ? 'selected' : '' }}>100ML</option>
+                                                                        <option value="100ML(sp)"
+                                                                            {{ $size == '100ML(sp)' ? 'selected' : '' }}>100ML(sp)</option>
                                                                         <option value="200ML"
-                                                                            {{ $size == '200ML' ? 'selected' : '' }}>200ML
-                                                                        </option>
+                                                                            {{ $size == '200ML' ? 'selected' : '' }}>200ML</option>
+                                                                        <option value="200ML(sp)"
+                                                                            {{ $size == '200ML(sp)' ? 'selected' : '' }}>200ML(sp)</option>
                                                                         <option value="500ML"
-                                                                            {{ $size == '500ML' ? 'selected' : '' }}>500ML
-                                                                        </option>
+                                                                            {{ $size == '500ML' ? 'selected' : '' }}>500ML</option>
+                                                                        <option value="500ML(sp)"
+                                                                            {{ $size == '500ML(sp)' ? 'selected' : '' }}>500ML(sp)</option>
                                                                     </select>
                                                                 </div>
                                                                 <div class="col-sm-3">
@@ -272,8 +296,8 @@
 @section('javascript')
     <script>
         $(document).ready(function() {
-            const jarOptions = ['5L', '10L', '20L'];
-            const packetOptions = ['100ML', '200ML', '500ML'];
+            const jarOptions = ['5L', '5L(sp)', '10L', '10L(sp)', '20L', '20L(sp)'];
+            const packetOptions = ['100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)'];
 
             // Initialize on load
             initializeSelect2();
@@ -483,6 +507,14 @@
                 $('.temperature-select').each(function() {
                     if (!$(this).val()) {
                         toastr.error('Please select temperature for all sections');
+                        isValid = false;
+                        return false;
+                    }
+                });
+
+                $('.product-temperature-select').each(function() {
+                    if (!$(this).val()) {
+                        toastr.error('Please select product temperature for all sections');
                         isValid = false;
                         return false;
                     }

@@ -1496,6 +1496,8 @@ return [
     'all_product_utilize' => 'All Product Utilize',
     'temperature' => 'Temperature',
     'temperature_records' => 'Temperature Records',
+    'product_temperature' => 'Product Temperature',
+    'add_temperature' => 'Add Temperature',
     'add_product' => 'Add Product',
     'edit_product' => 'Edit Product',
     'list_utilized_material' => 'List Utilized Material',

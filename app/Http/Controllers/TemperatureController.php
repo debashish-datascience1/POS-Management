@@ -163,7 +163,7 @@ class TemperatureController extends Controller
                     DB::raw('MIN(id) as id'),
                     DB::raw('COALESCE(SUM(total), 0) as total_stock')
                 )
-                ->whereDate('created_at', $date)
+                ->whereDate('date', $date)
                 ->groupBy('location_id')
                 ->get()
                 ->mapWithKeys(function ($item) {

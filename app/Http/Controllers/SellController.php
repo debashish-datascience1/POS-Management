@@ -746,6 +746,9 @@ class SellController extends Controller
 
         $change_return = $this->dummyPaymentLine;
 
+        $jarOptions = ['5L', '5L(sp)', '10L', '10L(sp)', '20L', '20L(sp)'];
+        $packetOptions = ['100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)'];    
+
         return view('sell.create')
             ->with(compact(
                 'business_details',
@@ -773,6 +776,8 @@ class SellController extends Controller
                 'is_order_request_enabled',
                 'users',
                 'default_price_group_id',
+                'jarOptions',
+                'packetOptions',
                 'change_return'
             ));
     }

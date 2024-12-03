@@ -94,8 +94,10 @@
 $(document).ready(function() {
     // Initialize datepicker
     $('#date').datepicker({
-        autoclose: true,
-        format: 'yyyy-mm-dd'
+    autoclose: true,
+    format: 'yyyy-mm-dd',
+    startDate: new Date().getFullYear() + '-01-01', 
+    endDate: new Date().getFullYear() + '-12-31'  
     });
 
     // Initialize Select2 for existing elements

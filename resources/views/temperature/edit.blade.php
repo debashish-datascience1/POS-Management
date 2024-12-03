@@ -49,8 +49,8 @@
                         <div class="temperature-entry row">
                             <div class="col-md-5">
                                 <div class="form-group">
-                                    {!! Form::label('temperatures[]', __('lang_v1.temperature') . ':*') !!}
-                                    {!! Form::select('temperatures[]', $temperatures, $temp, ['class' => 'form-control select2', 'required', 'placeholder' => __('messages.please_select')]); !!}
+                                    {!! Form::label('temperatures[]', __('temperature.temperature') . ':*') !!}
+                                    {!! Form::text('temperatures[]', $temp, ['class' => 'form-control', 'required', 'placeholder' => __('Enter temperature')]); !!}
                                 </div>
                             </div>
                             <div class="col-md-5">
@@ -132,7 +132,7 @@ $(document).ready(function() {
                 <div class="col-md-5">
                     <div class="form-group">
                         {!! Form::label('temperatures[]', __('temperature.temperature') . ':*') !!}
-                        {!! Form::select('temperatures[]', $temperatures, null, ['class' => 'form-control select2', 'required', 'placeholder' => __('messages.please_select')]); !!}
+                        {!! Form::text('temperatures[]', null, ['class' => 'form-control', 'required', 'placeholder' => __('Enter temperature')]); !!}
                     </div>
                 </div>
                 <div class="col-md-5">
@@ -171,7 +171,6 @@ $(document).ready(function() {
     $('#add-more-entry').on('click', function() {
         const $newEntry = $(getEntryTemplate());
         $('#temperature-entries').append($newEntry);
-        $('.select2').select2();
         updateQuantityDisplays();
     });
 
@@ -317,6 +316,11 @@ $(document).ready(function() {
             }
         });
     });
+
+    // Trigger initial quantity display update
+    if ($('.temperature-entry').length > 0) {
+        updateQuantityDisplays();
+    }
 });
 </script>
 @endsection
