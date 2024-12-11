@@ -11,7 +11,8 @@ class Packing extends Model
 
     protected $fillable = [
         'business_id',
-        'temperature', 
+        'temperature',
+        'product_temperature', 
         'quantity',    
         'mix',
         'jar',

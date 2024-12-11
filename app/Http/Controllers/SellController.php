@@ -102,17 +102,21 @@ class SellController extends Controller
             }
 
             //Add condition for created_by,used in sales representative sales report
-            if (request()->has('created_by')) {
+            if (request()->has('created_by')) 
+            {
                 $created_by = request()->get('created_by');
-                if (! empty($created_by)) {
+                if (! empty($created_by)) 
+                {
                     $sells->where('transactions.created_by', $created_by);
                 }
             }
 
             $partial_permissions = ['view_own_sell_only', 'view_commission_agent_sell', 'access_own_shipping', 'access_commission_agent_shipping'];
-            if (! auth()->user()->can('direct_sell.view')) {
+            if (! auth()->user()->can('direct_sell.view'))
+             {
                 $sells->where(function ($q) {
-                    if (auth()->user()->hasAnyPermission(['view_own_sell_only', 'access_own_shipping'])) {
+                    if (auth()->user()->hasAnyPermission(['view_own_sell_only', 'access_own_shipping'])) 
+                    {
                         $q->where('transactions.created_by', request()->session()->get('user.id'));
                     }
 
@@ -746,6 +750,9 @@ class SellController extends Controller
 
         $change_return = $this->dummyPaymentLine;
 
+        $jarOptions = ['5L', '5L(sp)', '10L', '10L(sp)', '20L', '20L(sp)'];
+        $packetOptions = ['100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)'];    
+
         return view('sell.create')
             ->with(compact(
                 'business_details',
@@ -773,6 +780,8 @@ class SellController extends Controller
                 'is_order_request_enabled',
                 'users',
                 'default_price_group_id',
+                'jarOptions',
+                'packetOptions',
                 'change_return'
             ));
     }

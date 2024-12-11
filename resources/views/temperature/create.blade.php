@@ -1,9 +1,9 @@
 @extends('layouts.app')
-@section('title', __('temperature.add_temperature'))
+@section('title', __('lang_v1.add_temperature'))
 
 @section('content')
 <section class="content-header">
-    <h1>@lang('temperature.add_temperature')</h1>
+    <h1>@lang('lang_v1.add_temperature')</h1>
 </section>
 
 <section class="content">
@@ -43,8 +43,12 @@
                     <div class="temperature-entry row">
                         <div class="col-md-5">
                             <div class="form-group">
-                                {!! Form::label('temperatures[]', __('lang_v1.temperature') . ':*') !!}
-                                {!! Form::select('temperatures[]', $temperatures, null, ['class' => 'form-control select2', 'required', 'placeholder' => __('messages.please_select')]); !!}
+                                {!! Form::label('temperatures[]', __('temperature.temperature') . ':*') !!}
+                                {!! Form::text('temperatures[]', null, [
+                                    'class' => 'form-control', 
+                                    'required', 
+                                    'placeholder' => __('Enter temperature')
+                                ]); !!}
                             </div>
                         </div>
                         <div class="col-md-5">
@@ -130,7 +134,11 @@ $(document).ready(function() {
                 <div class="col-md-5">
                     <div class="form-group">
                         {!! Form::label('temperatures[]', __('temperature.temperature') . ':*') !!}
-                        {!! Form::select('temperatures[]', $temperatures, null, ['class' => 'form-control select2', 'required', 'placeholder' => __('messages.please_select')]); !!}
+                        {!! Form::text('temperatures[]', null, [
+                            'class' => 'form-control', 
+                            'required', 
+                            'placeholder' => __('Enter temperature')
+                        ]); !!}
                     </div>
                 </div>
                 <div class="col-md-5">
@@ -196,7 +204,6 @@ $(document).ready(function() {
     $('#add-more-entry').on('click', function() {
         const $newEntry = $(getEntryTemplate());
         $('#temperature-entries').append($newEntry);
-        initializeSelect2();
     });
 
     // Remove entry

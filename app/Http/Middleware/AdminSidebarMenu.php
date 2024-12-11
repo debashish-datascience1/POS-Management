@@ -85,6 +85,8 @@ class AdminSidebarMenu
                 )->order(10);
             }
 
+       
+
             //Contacts dropdown
             if (auth()->user()->can('supplier.view') || auth()->user()->can('customer.view') || auth()->user()->can('supplier.view_own') || auth()->user()->can('customer.view_own')) {
                 $menu->dropdown(
@@ -137,6 +139,10 @@ class AdminSidebarMenu
                   </svg>', 'id' => 'tour_step4']
                 )->order(15);
             }
+
+
+
+    
 
             //Products dropdown
             if (auth()->user()->can('product.view') || auth()->user()->can('product.create') ||
@@ -299,6 +305,8 @@ class AdminSidebarMenu
                   </svg>', 'id' => 'tour_step6']
                 )->order(25);
             }
+
+            // Production ...............................................
             if (auth()->user()->can('production.view') || auth()->user()->can('production.create') || auth()->user()->can('packing.view') || auth()->user()->can('packing.create')) {
                 $menu->dropdown(
                     __('lang_v1.production'),
@@ -324,6 +332,16 @@ class AdminSidebarMenu
                                 ['icon' => '', 'active' => request()->is('production/temperature*')]
                             );
                         }
+            
+                        // New section for Final Product
+                        if (auth()->user()->can('production.view')) {
+                            $sub->url(
+                                action([\App\Http\Controllers\FinalProductController::class, 'index']),
+                                __('lang_v1.final_product'),
+                                ['icon' => '', 'active' => request()->is('production/final-product*')]
+                            );
+                        }
+            
                         if (auth()->user()->can('packing.view')) {
                             $sub->url(
                                 action([\App\Http\Controllers\PackingController::class, 'index']),
@@ -343,6 +361,82 @@ class AdminSidebarMenu
                     </svg>', 'active' => request()->is('production*')]
                 )->order(25);
             }
+
+
+            //hrms...............................
+
+            if (auth()->user()->can('hrms.view') || auth()->user()->can('hrms.create') || 
+                auth()->user()->can('employee.view') || auth()->user()->can('employee.create') || 
+                auth()->user()->can('salary.view') || auth()->user()->can('attendance.view')) {
+                $menu->dropdown(
+                    __('lang_v1.hrms'),
+                    function ($sub) {
+
+
+                    // Employee Subsection
+                    if (auth()->user()->can('employee.view')) 
+                    {
+                        $sub->url(
+                            action([\App\Http\Controllers\EmployeeController::class, 'index']),
+                            __('lang_v1.employee'),
+                            ['icon' => '', 'active' => request()->is('hrms/employee*')]
+                        );
+                    }
+
+
+                    //  Employee Advance Subsection
+                    if (auth()->user()->can('employee.view')) {
+                            $sub->url(
+                                    action([\App\Http\Controllers\EmployeeAdvanceController::class, 'index']),
+                                    __('lang_v1.employee_advance'),
+                                    ['icon' => '', 'active' => request()->is('hrms/employee-advance*')]
+                                );
+                        }
+
+                        // salary sub section ===================================================
+
+                        if (auth()->user()->can('salary.view')) {
+                            $sub->url(
+                                    action([\App\Http\Controllers\SalaryController::class, 'index']),
+                                    __('lang_v1.salary'),
+                                    ['icon' => '', 'active' => request()->is('hrms/salaries*')]
+                                );
+                        }
+                        //attendance=====================================================================
+
+                        if (auth()->user()->can('attendance.view')) {
+                            $sub->url(
+                                action([\App\Http\Controllers\AttendanceController::class, 'index']),
+                                __('lang_v1.attendance'),
+                                ['icon' => '', 'active' => request()->is('hrms/attendance*')]
+                            );
+                        }
+                    
+
+                    //     if (auth()->user()->can('salary.view') || auth()->user()->can('salary.create'))
+                    //     <li class="nav-item">
+                    //         <a href="{{ route('salaries.index') }}" class="nav-link {{ request()->is('hrms/salaries*') ? 'active' : '' }}">
+                    //             <i class="nav-icon fas fa-money-bill-wave"></i>
+                    //             <p>{{ __('lang_v1.salary') }}</p>
+                    //         </a>
+                    //     </li>
+                    // endif    
+                },
+
+                    ['icon' => '<svg aria-hidden="true" class="tw-size-5 tw-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"></path>
+                        <rect x="9" y="3" width="6" height="4" rx="2"></rect>
+                        <path d="M9 12l.01 0"></path>
+                        <path d="M13 12l2 0"></path>
+                        <path d="M9 16l.01 0"></path>
+                        <path d="M13 16l2 0"></path>
+                    </svg>', 'active' => request()->is('hrms*')]
+                )->order(26); // Adjust the order number as needed
+            }
+
+
+
             //Sell dropdown
             if ($is_admin || auth()->user()->hasAnyPermission(['sell.view', 'sell.create', 'direct_sell.access', 'view_own_sell_only', 'view_commission_agent_sell', 'access_shipping', 'access_own_shipping', 'access_commission_agent_shipping', 'access_sell_return', 'direct_sell.view', 'direct_sell.update', 'access_own_sell_return'])) {
                 $menu->dropdown(

@@ -40,7 +40,8 @@ class AccountController extends Controller
      */
     public function index()
     {
-        if (! auth()->user()->can('account.access')) {
+        if (! auth()->user()->can('account.access'))
+         {
             abort(403, 'Unauthorized action.');
         }
 

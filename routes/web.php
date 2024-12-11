@@ -20,6 +20,7 @@ use App\Http\Controllers\DocumentAndNoteController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\GroupTaxController;
+use App\Http\Controllers\FinalProductController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImportOpeningStockController;
 use App\Http\Controllers\ImportProductsController;
@@ -60,7 +61,12 @@ use App\Http\Controllers\UtilizeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VariationTemplateController;
 use App\Http\Controllers\WarrantyController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeAdvanceController;
+use App\Http\Controllers\SalaryController;
+use App\Http\Controllers\AttendanceController;
 use Illuminate\Support\Facades\Route;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -134,6 +140,109 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         Route::put('temperature/{temperature}', 'update')->name('temperature.update');
         Route::delete('temperature/{temperature}', 'destroy')->name('temperature.destroy');
     });
+
+   
+
+
+
+
+    Route::prefix('final-product')->group(function () {
+        Route::get('/', [FinalProductController::class, 'index'])->name('final-product.index');
+        Route::get('/create', [FinalProductController::class, 'create'])->name('final-product.create');
+        Route::post('/store', [FinalProductController::class, 'store'])->name('final-product.store');
+        Route::get('/edit/{id}', [FinalProductController::class, 'edit'])->name('final-product.edit');
+        Route::put('/update/{id}', [FinalProductController::class, 'update'])->name('final-product.update');
+        Route::delete('/delete/{id}', [FinalProductController::class, 'destroy'])->name('final-product.destroy');
+    });
+
+
+
+      Route::group(['prefix' => 'hrms', 'middleware' => ['auth','AdminSidebarMenu']], function () {
+    // Employee Routes
+            Route::get('employee', [App\Http\Controllers\EmployeeController::class, 'index'])->name('employees.index');
+            Route::get('employee/create', [App\Http\Controllers\EmployeeController::class, 'create'])->name('employees.create');
+            Route::post('employee', [App\Http\Controllers\EmployeeController::class, 'store'])->name('employees.store');
+            Route::get('employee/{employee}/edit', [App\Http\Controllers\EmployeeController::class, 'edit'])->name('employees.edit');
+            Route::put('employee/{employee}', [App\Http\Controllers\EmployeeController::class, 'update'])->name('employees.update');
+            Route::delete('employee/{employee}', [App\Http\Controllers\EmployeeController::class, 'destroy'])->name('employees.destroy');
+
+             // Employee Advance Routes
+
+        });
+       
+
+        Route::group(['prefix' => 'hrms'], function () {
+            Route::get('employee-advances', [EmployeeAdvanceController::class, 'index'])
+            ->name('employee_advance.index');
+            Route::get('employee-advances/create', [EmployeeAdvanceController::class, 'create'])->name('employee_advance.create');
+            Route::post('employee-advances', [EmployeeAdvanceController::class, 'store'])->name('employee_advance.store');
+            Route::get('employee-advances/{employeeAdvance}/edit', [EmployeeAdvanceController::class, 'edit'])->name('employee_advance.edit');
+            Route::put('employee-advances/{employeeAdvance}', [EmployeeAdvanceController::class, 'update'])->name('employee_advance.update');
+            Route::delete('employee-advances/{employeeAdvance}', [EmployeeAdvanceController::class, 'destroy'])->name('employee_advance.destroy');
+            Route::post('employee-advances/balance', [EmployeeAdvanceController::class, 'getEmployeeBalance'])->name('employee_advance.balance');
+        });
+        
+
+      
+       
+
+        // Salary Routes====================================================HRMS
+   
+
+        // Salary Routes - Make sure these routes are protected by auth middleware
+        Route::middleware(['auth'])->group(function () {
+        
+            // Index route to display the list of salaries
+            Route::get('salaries', [SalaryController::class, 'index'])->name('salaries.index');
+        
+            // Create route to show the salary creation form
+            Route::get('salaries/create', [SalaryController::class, 'create'])->name('salaries.create');
+        
+            // Store route to save the new salary record
+            Route::post('salaries', [SalaryController::class, 'store'])->name('salaries.store');
+        
+            // Edit route to show the form for editing a salary record
+            Route::get('salaries/{salary}/edit', [SalaryController::class, 'edit'])->name('salaries.edit');
+        
+            // Update route to update the salary record
+            Route::put('salaries/{salary}', [SalaryController::class, 'update'])->name('salaries.update');
+        
+            // Destroy route to delete a salary record
+            Route::delete('salaries/{salary}', [SalaryController::class, 'destroy'])->name('salaries.destroy');
+        });
+        
+        
+        //attendance+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        Route::resource('attendance', AttendanceController::class);
+        
+        // Custom route for DataTable data (GET request)
+        Route::get('attendance/data', [AttendanceController::class, 'getData'])->name('attendance.data');
+        
+        // Below are the routes that correspond to specific methods
+        
+        // Route for the index method (GET)
+        Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+        
+        // Route for the create method (GET)
+        Route::get('attendance/create', [AttendanceController::class, 'create'])->name('attendance.create');
+        
+        // Route for the store method (POST)
+        Route::post('attendance', [AttendanceController::class, 'store'])->name('attendance.store');
+        
+        // Route for the edit method (GET)
+        Route::get('attendance/{attendance}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
+        
+        // Route for the update method (PUT/PATCH)
+        Route::put('attendance/{attendance}', [AttendanceController::class, 'update'])->name('attendance.update');
+        Route::patch('attendance/{attendance}', [AttendanceController::class, 'update']);  // For PATCH requests
+        
+        // Route for the destroy method (DELETE)
+        Route::delete('attendance/{attendance}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
+        
+        
+    
+    
     Route::post('/packing/get-temperature-quantity', [\App\Http\Controllers\PackingController::class, 'getTemperatureQuantity'])->name('packing.getTemperatureQuantity');
     Route::get('/get-packing-stock/{location_id}', [\App\Http\Controllers\PackingController::class, 'getPackingStock']);
     Route::post('/validate-packing-stock', [\App\Http\Controllers\PackingController::class, 'validateStock']);
@@ -368,7 +477,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::resource('payments', TransactionPaymentController::class);
 
     //Printers...
-    Route::resource('printers', PrinterController::class);
+    Route::resource('printers', PrinterController::class); 
 
     Route::get('/stock-adjustments/remove-expired-stock/{purchase_line_id}', [StockAdjustmentController::class, 'removeExpiredStock']);
     Route::post('/stock-adjustments/get_product_row', [StockAdjustmentController::class, 'getProductRow']);
