@@ -468,8 +468,8 @@
                                                 <label for="jar_type_1">Jar:</label>
                                                 <select name="jar_type[]" id="jar_type_1" class="form-control">
                                                     <option value="">Select Jar</option>
-                                                    @foreach ($jarOptions as $key => $value)
-                                                        <option value="{{ $key }}">{{ $value }}</option>
+                                                    @foreach ($jarOptions as $option)
+                                                        <option value="{{ $option }}">{{ $option }}</option>
                                                     @endforeach
                                                 </select>
                                             </div>
@@ -514,8 +514,8 @@
                                                 <label for="packet_type_1">Packet:</label>
                                                 <select name="packet_type[]" id="packet_type_1" class="form-control">
                                                     <option value="">Select Packet</option>
-                                                    @foreach ($packetOptions as $key => $value)
-                                                        <option value="{{ $key }}">{{ $value }}</option>
+                                                    @foreach ($packetOptions as $option)
+                                                        <option value="{{ $option }}">{{ $option }}</option>
                                                     @endforeach
                                                 </select>
                                             </div>
@@ -1194,30 +1194,17 @@
             }
 
         });
-
-
         $(document).ready(function() {
-            // Jar Add/Remove Functionality
             $(document).on('click', '.add-jar-row', function() {
-                // Clone the first jar row
                 var newRow = $('.jar-row:first').clone();
-
-                // Clear all input values in the cloned row
                 newRow.find('input').val('');
                 newRow.find('select').prop('selectedIndex', 0);
-
-                // Show the remove button
                 newRow.find('.remove-jar-row').show();
-
-                // Append the new row to the container
                 $('#jar-container').append(newRow);
-
-                // Update remove button visibility
                 updateJarRemoveButtons();
             });
 
             $(document).on('click', '.remove-jar-row', function() {
-                // Only remove if there's more than one row
                 if ($('.jar-row').length > 1) {
                     $(this).closest('.jar-row').remove();
                     updateJarRemoveButtons();
@@ -1225,31 +1212,20 @@
             });
 
             function updateJarRemoveButtons() {
-                // Show remove button only if there's more than one row
                 $('.jar-row .remove-jar-row').toggle($('.jar-row').length > 1);
             }
 
-            // Packet Add/Remove Functionality
             $(document).on('click', '.add-packet-row', function() {
-                // Clone the first packet row
                 var newRow = $('.packet-row:first').clone();
-
-                // Clear all input values in the cloned row
                 newRow.find('input').val('');
                 newRow.find('select').prop('selectedIndex', 0);
-
-                // Show the remove button
                 newRow.find('.remove-packet-row').show();
-
-                // Append the new row to the container
                 $('#packet-container').append(newRow);
 
-                // Update remove button visibility
                 updatePacketRemoveButtons();
             });
 
             $(document).on('click', '.remove-packet-row', function() {
-                // Only remove if there's more than one row
                 if ($('.packet-row').length > 1) {
                     $(this).closest('.packet-row').remove();
                     updatePacketRemoveButtons();
@@ -1257,13 +1233,79 @@
             });
 
             function updatePacketRemoveButtons() {
-                // Show remove button only if there's more than one row
                 $('.packet-row .remove-packet-row').toggle($('.packet-row').length > 1);
             }
-
-            // Initial setup
             updateJarRemoveButtons();
             updatePacketRemoveButtons();
+
+            function getLastRowNumber(type) {
+                return $(`.${type}-row`).length;
+            }
+
+            $(document).ready(function() {
+                $('select[name="jar_type[]"]').on('change', function() {
+                    var selectedValue = $(this).val();
+                    console.log('Jar Selected Value:', selectedValue);
+
+                    if (selectedValue && selectedValue !== "") {
+                        fetchStockAndPrice('jar', selectedValue);
+                    }
+                });
+
+                $('select[name="packet_type[]"]').on('change', function() {
+                    var selectedValue = $(this).val();
+                    console.log('Packet Selected Value:', selectedValue);
+
+                    if (selectedValue && selectedValue !== "") {
+                        fetchStockAndPrice('packet', selectedValue);
+                    }
+                });
+            });
+
+            function fetchStockAndPrice(type, selectedValue) {
+                console.log('Fetching Stock and Price:', {
+                    type,
+                    selectedValue
+                });
+
+                // Ensure selectedValue is not empty
+                if (!selectedValue) {
+                    console.error('No value selected');
+                    return;
+                }
+
+                $.ajax({
+                    url: '/get-stock-and-price',
+                    method: 'GET',
+                    data: {
+                        type: type,
+                        value: selectedValue
+                    },
+                    success: function(response) {
+                        console.log('Stock and Price Response:', response);
+
+                        // Find the last row of the specific type
+                        var $lastRow = $(`.${type}-row:last`);
+                        var rowNumber = $lastRow.index() + 1;
+
+                        // Set the price in the price field
+                        $(`#${type}_price_${rowNumber}`).val(response.price);
+
+                        // Remove any existing stock information
+                        $lastRow.find(`.${type}-stock-info`).remove();
+
+                        // Add available stock information below the type field
+                        $lastRow.find(`#${type}_type_${rowNumber}`).after(
+                            `<small class="${type}-stock-info text-muted">
+                    Available Stock: ${response.total_stock}
+                </small>`
+                        );
+                    },
+                    error: function(xhr) {
+                        console.error('Error fetching stock and price:', xhr.responseText);
+                    }
+                });
+            }
         });
     </script>
 @endsection

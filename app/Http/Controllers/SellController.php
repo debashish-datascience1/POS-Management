@@ -9,6 +9,7 @@ use App\Contact;
 use App\CustomerGroup;
 use App\InvoiceScheme;
 use App\Media;
+use App\Packing;
 use App\Product;
 use App\SellingPriceGroup;
 use App\TaxRate;
@@ -780,6 +781,66 @@ class SellController extends Controller
                 'packetOptions',
                 'change_return'
             ));
+    }
+
+    public function getStockAndPrice(Request $request)
+    {
+        try {
+            \Log::info('Stock and Price Request:', [
+                'type' => $request->input('type'),
+                'value' => $request->input('value')
+            ]);
+
+            $business_id = auth()->user()->business_id;
+            $type = $request->input('type');
+            $selectedValue = $request->input('value');
+
+            if (!in_array($type, ['jar', 'packet'])) {
+                return response()->json(['error' => 'Invalid type'], 400);
+            }
+
+            $packings = Packing::where('business_id', $business_id)->get();
+
+            $totalStock = 0;
+            $price = null;
+
+            foreach ($packings as $packing) {
+                $items = $packing->{$type};
+
+                if (!is_array($items)) {
+                    $items = json_decode($items, true);
+                }
+
+                if (!is_array($items)) {
+                    continue;
+                }
+
+                foreach ($items as $item) {
+                    $parts = explode(':', $item);
+                    
+                    // Use case-insensitive and trim comparison
+                    if (isset($parts[0]) && 
+                        strtolower(trim($parts[0])) === strtolower(trim($selectedValue))) {
+                        
+                        $stock = isset($parts[1]) ? intval($parts[1]) : 0;
+                        $totalStock += $stock;
+                        
+                        if ($price === null && isset($parts[2])) {
+                            $price = floatval($parts[2]);
+                        }
+                    }
+                }
+            }
+
+            return response()->json([
+                'total_stock' => $totalStock,
+                'price' => $price ?? 0
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Stock and Price Error: ' . $e->getMessage());
+            return response()->json(['error' => 'An unexpected error occurred'], 500);
+        }
     }
 
     /**

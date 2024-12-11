@@ -234,12 +234,28 @@ class TemperatureController extends Controller
                 foreach ($request->temperatures as $index => $temperature_id) {
                     $quantity = $request->quantities[$index];
                     
-                    // Update temperature table
-                    DB::table('temperature')
+                    // Check if temperature exists, if not create it
+                    $temperatureRecord = DB::table('temperature')
                         ->where('temperature', $temperature_id)
-                        ->update([
-                            'temp_quantity' => DB::raw('COALESCE(temp_quantity, 0) + ' . $quantity)
+                        ->first();
+
+                    if (!$temperatureRecord) {
+                        // Insert new temperature record
+                        DB::table('temperature')->insert([
+                            'business_id' => $business_id,
+                            'temperature' => $temperature_id,
+                            'temp_quantity' => $quantity,
+                            'created_at' => now(),
+                            'updated_at' => now()
                         ]);
+                    } else {
+                        // Update existing temperature record
+                        DB::table('temperature')
+                            ->where('temperature', $temperature_id)
+                            ->update([
+                                'temp_quantity' => DB::raw('COALESCE(temp_quantity, 0) + ' . $quantity)
+                            ]);
+                    }
 
                     // Create history record
                     DB::table('temperature_history')->insert([
@@ -322,75 +338,6 @@ class TemperatureController extends Controller
         ));
     }
 
-    // public function update(Request $request, $id)
-    // {
-    //     if (!auth()->user()->can('temperature.edit')) {
-    //         abort(403, 'Unauthorized action.');
-    //     }
-    
-    //     try {
-    //         // Validate the inputs
-    //         $baseValidation = Validator::make($request->all(), [
-    //             'date' => 'required|date',
-    //             'location_id' => 'required|exists:business_locations,id',
-    //             'product_output' => 'required|numeric',
-    //             'temperatures' => 'required|array|min:1',
-    //             'quantities' => 'required|array|min:1',
-    //             'quantities.*' => 'required|numeric|min:0',
-    //         ]);
-    
-    //         if ($baseValidation->fails()) {
-    //             return [
-    //                 'success' => false,
-    //                 'msg' => $baseValidation->errors()->first()
-    //             ];
-    //         }
-    
-    //         // Validate that total quantity doesn't exceed product output
-    //         $totalQuantity = array_sum($request->quantities);
-    //         if ($totalQuantity > $request->product_output) {
-    //             return [
-    //                 'success' => false,
-    //                 'msg' => __('temperature.quantity_exceeds_output')
-    //             ];
-    //         }
-    
-    //         $business_id = $request->session()->get('user.business_id');
-    //         $productTemp = ProductTemp::findOrFail($id);
-    
-    //         if ($productTemp->business_id != $business_id) {
-    //             abort(403, 'Unauthorized action.');
-    //         }
-    
-    //         DB::beginTransaction();
-    
-    //         $productTemp->update([
-    //             'date' => $request->date,
-    //             'location_id' => $request->location_id,
-    //             'temperature' => json_encode($request->temperatures),
-    //             'quantity' => json_encode($request->quantities),
-    //             'product_output' => $request->product_output,
-    //         ]);
-    
-    //         DB::commit();
-    
-    //         $output = [
-    //             'success' => true,
-    //             'msg' => __("temperature.updated_success")
-    //         ];
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         \Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
-    
-    //         $output = [
-    //             'success' => false,
-    //             'msg' => __("messages.something_went_wrong")
-    //         ];
-    //     }
-    
-    //     return $output;
-    // }
-
     public function update(Request $request, $id)
     {
         if (!auth()->user()->can('temperature.edit')) {
@@ -447,15 +394,31 @@ class TemperatureController extends Controller
                     $oldQuantity = isset($oldData[$temperatureId]) ? $oldData[$temperatureId] : 0;
                     $quantityDifference = $newQuantity - $oldQuantity;
 
-                    // Update temperature table
-                    if ($quantityDifference != 0) {
+                    // Check if temperature exists, if not create it
+                    $temperatureRecord = DB::table('temperature')
+                        ->where('temperature', $temperatureId)
+                        ->first();
+
+                    if (!$temperatureRecord) {
+                        // Insert new temperature record
+                        DB::table('temperature')->insert([
+                            'business_id' => $business_id,
+                            'temperature' => $temperatureId,
+                            'temp_quantity' => $newQuantity,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                    } elseif ($quantityDifference != 0) {
+                        // Update existing temperature record
                         DB::table('temperature')
                             ->where('temperature', $temperatureId)
                             ->update([
                                 'temp_quantity' => DB::raw('COALESCE(temp_quantity, 0) + ' . $quantityDifference)
                             ]);
+                    }
 
-                        // Create history record for the change
+                    // Create history record for the change
+                    if ($quantityDifference != 0) {
                         DB::table('temperature_history')->insert([
                             'business_id' => $business_id,
                             'temperature' => $temperatureId,
