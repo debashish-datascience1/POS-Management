@@ -785,6 +785,7 @@ class SellController extends Controller
 
     public function getStockAndPrice(Request $request)
     {
+        
         try {
             \Log::info('Stock and Price Request:', [
                 'type' => $request->input('type'),
