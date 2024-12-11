@@ -468,8 +468,13 @@
                                                 <label for="jar_type_1">Jar:</label>
                                                 <select name="jar_type[]" id="jar_type_1" class="form-control">
                                                     <option value="">Select Jar</option>
+<<<<<<< HEAD
                                                     @foreach ($jarOptions as $key => $value)
                                                         <option value="{{ $key }}">{{ $value }}</option>
+=======
+                                                    @foreach ($jarOptions as $option)
+                                                        <option value="{{ $option }}">{{ $option }}</option>
+>>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                                                     @endforeach
                                                 </select>
                                             </div>
@@ -514,8 +519,13 @@
                                                 <label for="packet_type_1">Packet:</label>
                                                 <select name="packet_type[]" id="packet_type_1" class="form-control">
                                                     <option value="">Select Packet</option>
+<<<<<<< HEAD
                                                     @foreach ($packetOptions as $key => $value)
                                                         <option value="{{ $key }}">{{ $value }}</option>
+=======
+                                                    @foreach ($packetOptions as $option)
+                                                        <option value="{{ $option }}">{{ $option }}</option>
+>>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                                                     @endforeach
                                                 </select>
                                             </div>
@@ -1194,6 +1204,7 @@
             }
 
         });
+<<<<<<< HEAD
 
 
         $(document).ready(function() {
@@ -1213,11 +1224,23 @@
                 $('#jar-container').append(newRow);
 
                 // Update remove button visibility
+=======
+        $(document).ready(function() {
+            $(document).on('click', '.add-jar-row', function() {
+                var newRow = $('.jar-row:first').clone();
+                newRow.find('input').val('');
+                newRow.find('select').prop('selectedIndex', 0);
+                newRow.find('.remove-jar-row').show();
+                $('#jar-container').append(newRow);
+>>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                 updateJarRemoveButtons();
             });
 
             $(document).on('click', '.remove-jar-row', function() {
+<<<<<<< HEAD
                 // Only remove if there's more than one row
+=======
+>>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                 if ($('.jar-row').length > 1) {
                     $(this).closest('.jar-row').remove();
                     updateJarRemoveButtons();
@@ -1225,6 +1248,7 @@
             });
 
             function updateJarRemoveButtons() {
+<<<<<<< HEAD
                 // Show remove button only if there's more than one row
                 $('.jar-row .remove-jar-row').toggle($('.jar-row').length > 1);
             }
@@ -1245,11 +1269,26 @@
                 $('#packet-container').append(newRow);
 
                 // Update remove button visibility
+=======
+                $('.jar-row .remove-jar-row').toggle($('.jar-row').length > 1);
+            }
+
+            $(document).on('click', '.add-packet-row', function() {
+                var newRow = $('.packet-row:first').clone();
+                newRow.find('input').val('');
+                newRow.find('select').prop('selectedIndex', 0);
+                newRow.find('.remove-packet-row').show();
+                $('#packet-container').append(newRow);
+
+>>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                 updatePacketRemoveButtons();
             });
 
             $(document).on('click', '.remove-packet-row', function() {
+<<<<<<< HEAD
                 // Only remove if there's more than one row
+=======
+>>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                 if ($('.packet-row').length > 1) {
                     $(this).closest('.packet-row').remove();
                     updatePacketRemoveButtons();
@@ -1257,6 +1296,7 @@
             });
 
             function updatePacketRemoveButtons() {
+<<<<<<< HEAD
                 // Show remove button only if there's more than one row
                 $('.packet-row .remove-packet-row').toggle($('.packet-row').length > 1);
             }
@@ -1264,6 +1304,81 @@
             // Initial setup
             updateJarRemoveButtons();
             updatePacketRemoveButtons();
+=======
+                $('.packet-row .remove-packet-row').toggle($('.packet-row').length > 1);
+            }
+            updateJarRemoveButtons();
+            updatePacketRemoveButtons();
+
+            function getLastRowNumber(type) {
+                return $(`.${type}-row`).length;
+            }
+
+            $(document).ready(function() {
+                $('select[name="jar_type[]"]').on('change', function() {
+                    var selectedValue = $(this).val();
+                    console.log('Jar Selected Value:', selectedValue);
+
+                    if (selectedValue && selectedValue !== "") {
+                        fetchStockAndPrice('jar', selectedValue);
+                    }
+                });
+
+                $('select[name="packet_type[]"]').on('change', function() {
+                    var selectedValue = $(this).val();
+                    console.log('Packet Selected Value:', selectedValue);
+
+                    if (selectedValue && selectedValue !== "") {
+                        fetchStockAndPrice('packet', selectedValue);
+                    }
+                });
+            });
+
+            function fetchStockAndPrice(type, selectedValue) {
+                console.log('Fetching Stock and Price:', {
+                    type,
+                    selectedValue
+                });
+
+                // Ensure selectedValue is not empty
+                if (!selectedValue) {
+                    console.error('No value selected');
+                    return;
+                }
+
+                $.ajax({
+                    url: '/get-stock-and-price',
+                    method: 'GET',
+                    data: {
+                        type: type,
+                        value: selectedValue
+                    },
+                    success: function(response) {
+                        console.log('Stock and Price Response:', response);
+
+                        // Find the last row of the specific type
+                        var $lastRow = $(`.${type}-row:last`);
+                        var rowNumber = $lastRow.index() + 1;
+
+                        // Set the price in the price field
+                        $(`#${type}_price_${rowNumber}`).val(response.price);
+
+                        // Remove any existing stock information
+                        $lastRow.find(`.${type}-stock-info`).remove();
+
+                        // Add available stock information below the type field
+                        $lastRow.find(`#${type}_type_${rowNumber}`).after(
+                            `<small class="${type}-stock-info text-muted">
+                    Available Stock: ${response.total_stock}
+                </small>`
+                        );
+                    },
+                    error: function(xhr) {
+                        console.error('Error fetching stock and price:', xhr.responseText);
+                    }
+                });
+            }
+>>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
         });
     </script>
 @endsection

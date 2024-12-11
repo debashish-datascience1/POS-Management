@@ -23,11 +23,12 @@
                 <thead>
                     <tr>
                         <th>@lang('messages.date')</th>
+<<<<<<< HEAD
                         <th>@lang('lang_v1.temperature')</th>
+=======
+>>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                         <th>@lang('lang_v1.product_temperature')</th>
                         <th>@lang('lang_v1.quantity')</th>
-                        <th>@lang('lang_v1.mix')</th>
-                        <th>@lang('lang_v1.total')</th>
                         <th>@lang('lang_v1.jar')</th>
                         <th>@lang('lang_v1.packet')</th>
                         <th>@lang('lang_v1.grand_total')</th>
@@ -52,11 +53,12 @@ $(document).ready(function() {
         ajax: '/production/packing',
         columns: [
             { data: 'date', name: 'date' },
+<<<<<<< HEAD
             { data: 'temperature', name: 'temperature' },
+=======
+>>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
             { data: 'product_temperature', name: 'product_temperature' },
             { data: 'quantity', name: 'quantity' },
-            { data: 'mix', name: 'mix' },
-            { data: 'total', name: 'total' },
             { data: 'jar', name: 'jar' },
             { data: 'packet', name: 'packet' },
             { data: 'grand_total', name: 'grand_total' },
