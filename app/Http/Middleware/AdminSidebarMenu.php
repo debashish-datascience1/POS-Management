@@ -332,6 +332,16 @@ class AdminSidebarMenu
                                 ['icon' => '', 'active' => request()->is('production/temperature*')]
                             );
                         }
+            
+                        // New section for Final Product
+                        if (auth()->user()->can('production.view')) {
+                            $sub->url(
+                                action([\App\Http\Controllers\FinalProductController::class, 'index']),
+                                __('lang_v1.final_product'),
+                                ['icon' => '', 'active' => request()->is('production/final-product*')]
+                            );
+                        }
+            
                         if (auth()->user()->can('packing.view')) {
                             $sub->url(
                                 action([\App\Http\Controllers\PackingController::class, 'index']),

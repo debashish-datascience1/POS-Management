@@ -39,7 +39,6 @@
             <div class="packing-section">
                 <div class="packing-row">
                     <div class="row">
-<<<<<<< HEAD
                         <div class="col-sm-12">
                             <div class="row">
                                 <div class="col-sm-3">
@@ -77,30 +76,10 @@
                                         ]) !!}
                                     </div>
                                 </div>
-=======
-                        <div class="col-sm-6">
-                            <div class="form-group">
-                                {!! Form::label('product_temperature[]', __('lang_v1.product_temperature') . ':*') !!}
-                                {!! Form::select('product_temperature[]', $product_temperatures, null, [
-                                    'class' => 'form-control product-temperature-select',
-                                    'placeholder' => __('messages.please_select'),
-                                    'required',
-                                ]) !!}
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="form-group">
-                                {!! Form::label('quantity[]', __('lang_v1.quantity') . ':*') !!}
-                                {!! Form::text('quantity[]', null, [
-                                    'class' => 'form-control quantity-input',
-                                    'required'
-                                ]) !!}
->>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                             </div>
                         </div>
                     </div>
                     <div class="row">
-<<<<<<< HEAD
                         <div class="col-sm-4">
                             <div class="form-group">
                                 {!! Form::label('total[]', __('lang_v1.total_after_mix') . ':') !!}
@@ -112,9 +91,6 @@
                             </div>
                         </div>
                         <div class="col-sm-8">
-=======
-                        <div class="col-sm-12">
->>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                             <div class="row">
                                 <div class="col-sm-6">
                                     <div class="form-group">
@@ -181,11 +157,7 @@
             const packetOptions = ['100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)'];
 
             function initializeSelect2() {
-<<<<<<< HEAD
                 $('.temperature-select, .product-temperature-select').each(function() {
-=======
-                $('.product-temperature-select').each(function() {
->>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                     if (!$(this).hasClass('select2-hidden-accessible')) {
                         $(this).select2({
                             width: '100%'
@@ -195,7 +167,6 @@
             }
 
             function addOption(type, $container, sectionIndex) {
-<<<<<<< HEAD
     const options = type === 'jar' ? jarOptions : packetOptions;
     const optionIndex = $container.find(`.${type}-option`).length;
     const html = `
@@ -238,37 +209,14 @@
     $container.append(html);
     calculateGrandTotal();
 }
-=======
-                const options = type === 'jar' ? jarOptions : packetOptions;
-                const optionIndex = $container.find(`.${type}-option`).length;
-                const html = `
-                <div class="${type}-option mb-2">
-                    <div class="row">
-                        <div class="col-sm-3">
-                            <label>${type.charAt(0).toUpperCase() + type.slice(1)} Size:</label>
-                            <select name="${type}s[${sectionIndex}][${optionIndex}][size]" class="form-control ${type}-size">
-                                ${options.map(option => `<option value="${option}">${option}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="col-sm-2">
-                            <label>Quantity:</label>
-                            <input type="number" name="${type}s[${sectionIndex}][${optionIndex}][quantity]" class="form-control ${type}-quantity" min="1" value="1">
-                        </div>
-                        <div class="col-sm-2">
-                            <label>Price:</label>
-                            <input type="number" name="${type}s[${sectionIndex}][${optionIndex}][price]" class="form-control ${type}-price" min="0" step="0.01" value="0">
-                        </div>
-                        <div class="col-sm-2">
-                            <label>&nbsp;</label>
-                            <button type="button" class="btn btn-danger btn-sm remove-${type}" style="margin-top: 25px;">X</button>
-                        </div>
-                    </div>
-                </div>
-                `;
-                $container.append(html);
+
+            function calculateTotal($row) {
+                const quantity = parseFloat($row.find('.quantity-input').val()) || 0;
+                const mix = parseFloat($row.find('.mix-input').val()) || 0;
+                const total = quantity + (quantity * mix / 100);
+                $row.find('.total-input').val(total.toFixed(2));
                 calculateGrandTotal();
             }
->>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
 
             function calculateGrandTotal() {
                 let grandTotal = 0;
@@ -301,11 +249,7 @@
 
                 $newSection.find('input').val('');
                 $newSection.find('.select2-container').remove();
-<<<<<<< HEAD
                 $newSection.find('.temperature-select, .product-temperature-select').removeClass('select2-hidden-accessible').val('');
-=======
-                $newSection.find('.product-temperature-select').removeClass('select2-hidden-accessible').val('');
->>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
 
                 const $jarContainer = $newSection.find('.jar-container').empty();
                 const $packetContainer = $newSection.find('.packet-container').empty();
@@ -376,35 +320,44 @@
                 calculateGrandTotal();
             });
 
-            // Product Temperature change handler to get quantity
-            $(document).on('change', '.product-temperature-select', function() {
+            // Temperature selection handler
+            $(document).on('change', '.temperature-select', function() {
                 const $row = $(this).closest('.packing-row');
-                const productTemperature = $(this).val();
+                const temperature = $(this).val();
 
-                if (productTemperature) {
+                if (temperature) {
                     $.ajax({
                         url: '/packing/get-temperature-quantity',
                         type: 'POST',
                         data: {
                             _token: $('meta[name="csrf-token"]').attr('content'),
-                            temperature: productTemperature
+                            temperature: temperature
                         },
                         success: function(response) {
                             if (response.success) {
                                 $row.find('.quantity-input').val(response.data.temp_quantity);
+                                calculateTotal($row);
                             } else {
                                 toastr.error(response.message);
                                 $row.find('.quantity-input').val('');
+                                calculateTotal($row);
                             }
                         },
                         error: function() {
                             toastr.error('Error fetching temperature quantity');
                             $row.find('.quantity-input').val('');
+                            calculateTotal($row);
                         }
                     });
                 } else {
                     $row.find('.quantity-input').val('');
+                    calculateTotal($row);
                 }
+            });
+
+            // Mix input handler
+            $(document).on('input', '.mix-input', function() {
+                calculateTotal($(this).closest('.packing-row'));
             });
 
             // Price and quantity change handlers
@@ -417,7 +370,6 @@
                 let isValid = true;
 
                 $('.product-temperature-select').each(function() {
-<<<<<<< HEAD
                     if (!$(this).val()) {
                         toastr.error('Please select product temperature for all sections');
                         isValid = false;
@@ -426,18 +378,8 @@
                 });
 
                 $('.temperature-select').each(function() {
-=======
->>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                     if (!$(this).val()) {
-                        toastr.error('Please select product temperature for all sections');
-                        isValid = false;
-                        return false;
-                    }
-                });
-
-                $('.quantity-input').each(function() {
-                    if (!$(this).val()) {
-                        toastr.error('Please fill quantity for all sections');
+                        toastr.error('Please select temperature for all sections');
                         isValid = false;
                         return false;
                     }

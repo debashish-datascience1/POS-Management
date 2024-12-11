@@ -41,28 +41,25 @@
 
             <div class="packing-section">
                 @php
-<<<<<<< HEAD
                     // Ensure temperatures is an array
                     $temperatures = is_string($packing->temperature)
                         ? json_decode($packing->temperature)
                         : $packing->temperature;
-=======
-                    // Ensure product_temperature is an array
->>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                     $product_temperatures_data = is_string($packing->product_temperature)
                         ? json_decode($packing->product_temperature)
                         : $packing->product_temperature;
                     $quantities = is_string($packing->quantity) ? json_decode($packing->quantity) : $packing->quantity;
+                    $mixes = is_string($packing->mix) ? json_decode($packing->mix) : $packing->mix;
+                    $totals = is_string($packing->total) ? json_decode($packing->total) : $packing->total;
                     $jars = is_string($packing->jar) ? json_decode($packing->jar) : $packing->jar;
                     $packets = is_string($packing->packet) ? json_decode($packing->packet) : $packing->packet;
                 @endphp
 
-                @foreach ($product_temperatures_data as $index => $product_temperature)
+                @foreach ($temperatures as $index => $temperature)
                     <div class="packing-row">
                         <div class="row">
-                            <div class="col-sm-6">
+                            <div class="col-sm-4">
                                 <div class="form-group">
-<<<<<<< HEAD
                                     {!! Form::label('temperatures[]', __('lang_v1.temperature') . ':*') !!}
                                     <select name="temperatures[]" class="form-control temperature-select" required>
                                         <option value="">@lang('messages.please_select')</option>
@@ -88,19 +85,14 @@
                                     {!! Form::label('mix[]', __('lang_v1.mix') . ':*') !!}
                                     {!! Form::number('mix[]', $mixes[$index], [
                                         'class' => 'form-control mix-input',
-=======
-                                    {!! Form::label('product_temperature[]', __('lang_v1.product_temperature') . ':*') !!}
-                                    {!! Form::select('product_temperature[]', $product_temperatures, $product_temperature, [
-                                        'class' => 'form-control product-temperature-select',
-                                        'placeholder' => __('messages.please_select'),
->>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                                         'required',
+                                        'min' => 0,
+                                        'step' => 'any',
                                     ]) !!}
                                 </div>
                             </div>
-                            <div class="col-sm-6">
+                            <div class="col-sm-4">
                                 <div class="form-group">
-<<<<<<< HEAD
                                     {!! Form::label('product_temperature[]', __('lang_v1.product_temperature') . ':*') !!}
                                     {!! Form::select('product_temperature[]', $product_temperatures, 
                                         isset($product_temperatures_data[$index]) ? $product_temperatures_data[$index] : null, 
@@ -118,16 +110,10 @@
                                         'class' => 'form-control total-input',
                                         'readonly',
                                         'style' => 'background-color: #eee;',
-=======
-                                    {!! Form::label('quantity[]', __('lang_v1.quantity') . ':*') !!}
-                                    {!! Form::text('quantity[]', $quantities[$index], [
-                                        'class' => 'form-control quantity-input',
-                                        'required',
->>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                                     ]) !!}
                                 </div>
                             </div>
-                            <div class="col-sm-12">
+                            <div class="col-sm-8">
                                 <div class="row">
                                     <div class="col-sm-6">
                                         <div class="form-group">
@@ -156,7 +142,6 @@
                                                                         <option value="5L"
                                                                             {{ $size == '5L' ? 'selected' : '' }}>5L</option>
                                                                         <option value="5L(sp)"
-<<<<<<< HEAD
                                                                             {{ $size == '5L(sp)' ? 'selected' : '' }}>5L(sp)</option>
                                                                         <option value="10L"
                                                                             {{ $size == '10L' ? 'selected' : '' }}>10L</option>
@@ -166,20 +151,6 @@
                                                                             {{ $size == '20L' ? 'selected' : '' }}>20L</option>
                                                                         <option value="20L(sp)"
                                                                             {{ $size == '20L(sp)' ? 'selected' : '' }}>20L(sp)</option>
-=======
-                                                                            {{ $size == '5L(sp)' ? 'selected' : '' }}>5L(sp)
-                                                                        </option>
-                                                                        <option value="10L"
-                                                                            {{ $size == '10L' ? 'selected' : '' }}>10L</option>
-                                                                        <option value="10L(sp)"
-                                                                            {{ $size == '10L(sp)' ? 'selected' : '' }}>10L(sp)
-                                                                        </option>
-                                                                        <option value="20L"
-                                                                            {{ $size == '20L' ? 'selected' : '' }}>20L</option>
-                                                                        <option value="20L(sp)"
-                                                                            {{ $size == '20L(sp)' ? 'selected' : '' }}>20L(sp)
-                                                                        </option>
->>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                                                                     </select>
                                                                 </div>
                                                                 <div class="col-sm-3">
@@ -237,7 +208,6 @@
                                                                         name="packets[{{ $index }}][{{ $loop->index }}][size]"
                                                                         class="form-control packet-size">
                                                                         <option value="100ML"
-<<<<<<< HEAD
                                                                             {{ $size == '100ML' ? 'selected' : '' }}>100ML</option>
                                                                         <option value="100ML(sp)"
                                                                             {{ $size == '100ML(sp)' ? 'selected' : '' }}>100ML(sp)</option>
@@ -249,25 +219,6 @@
                                                                             {{ $size == '500ML' ? 'selected' : '' }}>500ML</option>
                                                                         <option value="500ML(sp)"
                                                                             {{ $size == '500ML(sp)' ? 'selected' : '' }}>500ML(sp)</option>
-=======
-                                                                            {{ $size == '100ML' ? 'selected' : '' }}>100ML
-                                                                        </option>
-                                                                        <option value="100ML(sp)"
-                                                                            {{ $size == '100ML(sp)' ? 'selected' : '' }}>
-                                                                            100ML(sp)</option>
-                                                                        <option value="200ML"
-                                                                            {{ $size == '200ML' ? 'selected' : '' }}>200ML
-                                                                        </option>
-                                                                        <option value="200ML(sp)"
-                                                                            {{ $size == '200ML(sp)' ? 'selected' : '' }}>
-                                                                            200ML(sp)</option>
-                                                                        <option value="500ML"
-                                                                            {{ $size == '500ML' ? 'selected' : '' }}>500ML
-                                                                        </option>
-                                                                        <option value="500ML(sp)"
-                                                                            {{ $size == '500ML(sp)' ? 'selected' : '' }}>
-                                                                            500ML(sp)</option>
->>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
                                                                     </select>
                                                                 </div>
                                                                 <div class="col-sm-3">
@@ -312,7 +263,7 @@
                     <div class="btn-group">
                         <button type="button" class="btn btn-success" id="add_more_section">Add More</button>
                         <button type="button" class="btn btn-danger remove-section"
-                            {{ count($product_temperatures_data) > 1 ? '' : 'style=display:none;' }}>Remove</button>
+                            {{ count($temperatures) > 1 ? '' : 'style=display:none;' }}>Remove</button>
                     </div>
                 </div>
             </div>
@@ -353,7 +304,7 @@
             calculateGrandTotal();
 
             function initializeSelect2() {
-                $('.product-temperature-select').each(function() {
+                $('.temperature-select').each(function() {
                     if (!$(this).hasClass('select2-hidden-accessible')) {
                         $(this).select2({
                             width: '100%'
@@ -401,6 +352,14 @@
                 calculateGrandTotal();
             }
 
+            function calculateTotal($row) {
+                const quantity = parseFloat($row.find('.quantity-input').val()) || 0;
+                const mix = parseFloat($row.find('.mix-input').val()) || 0;
+                const total = quantity + (quantity * mix / 100);
+                $row.find('.total-input').val(total.toFixed(2));
+                calculateGrandTotal();
+            }
+
             function calculateGrandTotal() {
                 let grandTotal = 0;
                 $('.packing-row').each(function() {
@@ -428,8 +387,7 @@
                 // Reset values and classes
                 $newSection.find('input').val('');
                 $newSection.find('.select2-container').remove();
-                $newSection.find('.product-temperature-select').removeClass('select2-hidden-accessible')
-                    .val('');
+                $newSection.find('.temperature-select').removeClass('select2-hidden-accessible').val('');
                 $newSection.find('.jar-container, .packet-container').empty();
 
                 // Add initial jar and packet options
@@ -497,6 +455,46 @@
                 calculateGrandTotal();
             });
 
+            // Temperature selection handler
+            $(document).on('change', '.temperature-select', function() {
+                const $row = $(this).closest('.packing-row');
+                const temperature = $(this).val();
+
+                if (temperature) {
+                    $.ajax({
+                        url: '/packing/get-temperature-quantity',
+                        type: 'POST',
+                        data: {
+                            _token: $('meta[name="csrf-token"]').attr('content'),
+                            temperature: temperature
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                $row.find('.quantity-input').val(response.data.temp_quantity);
+                                calculateTotal($row);
+                            } else {
+                                toastr.error(response.message);
+                                $row.find('.quantity-input').val('');
+                                calculateTotal($row);
+                            }
+                        },
+                        error: function() {
+                            toastr.error('Error fetching temperature quantity');
+                            $row.find('.quantity-input').val('');
+                            calculateTotal($row);
+                        }
+                    });
+                } else {
+                    $row.find('.quantity-input').val('');
+                    calculateTotal($row);
+                }
+            });
+
+            // Mix input handler
+            $(document).on('input', '.mix-input', function() {
+                calculateTotal($(this).closest('.packing-row'));
+            });
+
             // Price and quantity change handlers
             $(document).on('input', '.jar-quantity, .jar-price, .packet-quantity, .packet-price', function() {
                 calculateGrandTotal();
@@ -506,9 +504,9 @@
             $('#packing_edit_form').on('submit', function(e) {
                 let isValid = true;
 
-                $('.product-temperature-select').each(function() {
+                $('.temperature-select').each(function() {
                     if (!$(this).val()) {
-                        toastr.error('Please select product temperature for all sections');
+                        toastr.error('Please select temperature for all sections');
                         isValid = false;
                         return false;
                     }

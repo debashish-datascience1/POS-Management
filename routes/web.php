@@ -121,14 +121,6 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         Route::get('/packing/{id}/edit', [App\Http\Controllers\PackingController::class, 'edit'])->name('packing.edit');
         Route::put('/packing/{id}', [App\Http\Controllers\PackingController::class, 'update'])->name('packing.update');
         Route::delete('/packing/{id}', [App\Http\Controllers\PackingController::class, 'destroy'])->name('packing.destroy');
-
-        Route::get('/final-product', [App\Http\Controllers\FinalProductController::class, 'index'])->name('final-product.index');
-        Route::get('/final-product/create', [App\Http\Controllers\FinalProductController::class, 'create'])->name('final-product.create');
-        Route::post('/final-product', [App\Http\Controllers\FinalProductController::class, 'store'])->name('final-product.store');
-        Route::get('/final-product/{id}/edit', [App\Http\Controllers\FinalProductController::class, 'edit'])->name('final-product.edit');
-        Route::put('/final-product/{id}', [App\Http\Controllers\FinalProductController::class, 'update'])->name('final-product.update');
-        Route::delete('/final-product/{id}', [App\Http\Controllers\FinalProductController::class, 'destroy'])->name('final-product.destroy');
-
     });
     Route::group(['prefix' => 'utilize', 'as' => 'utilize.'], function () {
         Route::get('/', [UtilizeController::class, 'index'])->name('index');
@@ -148,7 +140,6 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         Route::put('temperature/{temperature}', 'update')->name('temperature.update');
         Route::delete('temperature/{temperature}', 'destroy')->name('temperature.destroy');
     });
-<<<<<<< HEAD
 
    
 
@@ -252,9 +243,6 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         
     
     
-=======
-    Route::post('/packing/get-temperature-quantity1', [\App\Http\Controllers\PackingController::class, 'getTemperatureQuantity1'])->name('packing.getTemperatureQuantity1');
->>>>>>> a272fb2e0d36f2f4d21b605d8f5982cb2b6f11b1
     Route::post('/packing/get-temperature-quantity', [\App\Http\Controllers\PackingController::class, 'getTemperatureQuantity'])->name('packing.getTemperatureQuantity');
     Route::get('/get-packing-stock/{location_id}', [\App\Http\Controllers\PackingController::class, 'getPackingStock']);
     Route::post('/validate-packing-stock', [\App\Http\Controllers\PackingController::class, 'validateStock']);
@@ -297,7 +285,8 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::resource('units', UnitController::class);
 
     Route::resource('ledger-discount', LedgerDiscountController::class)->only('edit', 'destroy', 'store', 'update');
-    Route::get('/get-stock-and-price', [SellController::class, 'getStockAndPrice'])->name('get.stock.price');    Route::post('check-mobile', [ContactController::class, 'checkMobile']);
+
+    Route::post('check-mobile', [ContactController::class, 'checkMobile']);
     Route::get('/get-contact-due/{contact_id}', [ContactController::class, 'getContactDue']);
     Route::get('/contacts/payments/{contact_id}', [ContactController::class, 'getContactPayments']);
     Route::get('/contacts/map', [ContactController::class, 'contactMap']);
