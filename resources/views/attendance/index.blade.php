@@ -1,88 +1,54 @@
+<!-- resources/views/attendance/index.blade.php -->
+
 @extends('layouts.app')
-@section('title', __('Attendance'))
+
 @section('content')
-<section class="content-header">
-    <h1>@lang('Attendance')
-        <small>@lang('Manage Attendance')</small>
-    </h1>
-</section>
-<section class="content">
-    @component('components.widget', ['class' => 'box-primary', 'title' => __('All Attendance')])
-        @slot('tool')
-            <div class="box-tools">
-                <a class="btn btn-block btn-primary" href="{{ route('attendance.create') }}">
-                   <i class="fa fa-plus"></i> @lang('Add Attendance')</a>
-            </div>
-        @endslot
-        <div class="table-responsive">
-            <table class="table table-bordered table-striped" id="attendance_table">
-                <thead>
-                    <tr>
-                        <th>@lang('Employee Name')</th>
-                        <th>@lang('Date')</th>
-                        <th>@lang('Check-in Time')</th>
-                        <th>@lang('Check-out Time')</th>
-                        <th>@lang('Leave Type')</th>
-                        <th>@lang('Total Hours Worked')</th>
-                        <th>@lang('Overtime Hours')</th>
-                        <th>@lang('Action')</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- DataTable will populate here -->
-                </tbody>
-            </table>
+<div class="container">
+    <h1>Employee Attendance</h1>
+
+    <form action="{{ route('attendance.fetch') }}" method="POST">
+        @csrf
+        <div class="form-group">
+            <label for="employee_id">Select Employee</label>
+            <select name="employee_id" id="employee_id" class="form-control" required>
+                <option value="">Select Employee</option>
+                @foreach($employees as $employee)
+                    <option value="{{ $employee->id }}">{{ $employee->name }}</option>
+                @endforeach
+            </select>
         </div>
-    @endcomponent
-</section>
-@endsection
-@section('javascript')
-<script>
-    $(document).ready(function() {
-        var attendance_table = $('#attendance_table').DataTable({
-            serverSide: true,
-            ajax: '{{ route("attendance.data") }}',
-            columns: [
-                { data: 'employee.name', name: 'employee.name' },
-                { data: 'date', name: 'date' },
-                { data: 'check_in_time', name: 'check_in_time' },
-                { data: 'check_out_time', name: 'check_out_time' },
-                { data: 'leave_type', name: 'leave_type' },
-                { data: 'total_hours_worked', name: 'total_hours_worked' },
-                { data: 'overtime_hours', name: 'overtime_hours' },
-                { data: 'action', name: 'action', orderable: false, searchable: false },
-            ]
-        });
 
-        $(document).on('click', '.delete-attendance', function(e) {
-            e.preventDefault();
-            var href = $(this).attr('data-href');
-            
-            swal({
-                title: LANG.sure,
-                text: LANG.confirm_delete,
-                icon: "warning",
-                buttons: true,
-                dangerMode: true,
-            }).then((willDelete) => {
-                if (willDelete) {
-                    $.ajax({
-                        method: "DELETE",
-                        url: href,
-                        dataType: "json",
-                        success: function(result) {
-                            if(result.success == true) {
-                                toastr.success(result.msg);
-                                attendance_table.ajax.reload();
-                            } else {
-                                toastr.error(result.msg);
-                            }
-                        }
-                    });
-                }
-            });
-        });
-    });
-</script>
+        <div class="form-group">
+            <label for="year">Select Year</label>
+            <input type="number" name="year" id="year" class="form-control" value="{{ old('year', date('Y')) }}" required>
+        </div>
 
+        <div class="form-group">
+            <label for="month">Select Month</label>
+            <input type="number" name="month" id="month" class="form-control" value="{{ old('month', date('m')) }}" required min="1" max="12">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+
+    @if(isset($attendances))
+        <h3>Attendance for {{ $employee->name }} in {{ $startDate->format('F Y') }}</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($attendances as $attendance)
+                    <tr>
+                        <td>{{ \Carbon\Carbon::parse($attendance->date)->format('d M, Y') }}</td>
+                        <td>{{ $attendance->status }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+</div>
 @endsection
