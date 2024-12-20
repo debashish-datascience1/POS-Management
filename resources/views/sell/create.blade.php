@@ -60,7 +60,7 @@
         @endphp
         <input type="hidden" id="item_addition_method" value="{{ $business_details->item_addition_method }}">
         {!! Form::open([
-            'url' => action([\App\Http\Controllers\SellPosController::class, 'store']),
+            'url' => action([\App\Http\Controllers\SellController::class, 'store']),
             'method' => 'post',
             'id' => 'add_sell_form',
             'files' => true,
@@ -456,7 +456,18 @@
                         <span id="restaurant_module_span">
                         </span>
                     @endif
-
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                {!! Form::label('product_temperature[]', __('lang_v1.product_temperature') . ':*') !!}
+                                {!! Form::select('product_temperature[]', $product_temperatures, null, [
+                                    'class' => 'form-control product-temperature-select',
+                                    'placeholder' => __('messages.please_select'),
+                                    'required',
+                                ]) !!}
+                            </div>
+                        </div>
+                    </div>
                     <div class="row">
                         <div class="col-md-6">
                             <h4>Jar Details</h4>
@@ -547,6 +558,14 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="grand_total">Grand Total:</label>
+                                <input type="number" id="grand_total" class="form-control" readonly>
                             </div>
                         </div>
                     </div>
@@ -1074,12 +1093,9 @@
         @endif
 
         <div class="row">
-            {!! Form::hidden('is_save_and_print', 0, ['id' => 'is_save_and_print']) !!}
             <div class="col-sm-12 text-center tw-mt-4">
-                <button type="button" id="submit-sell"
+                <button type="submit" id="save-sell"
                     class="tw-dw-btn tw-dw-btn-primary tw-dw-btn-lg tw-text-white">@lang('messages.save')</button>
-                <button type="button" id="save-and-print"
-                    class="tw-dw-btn tw-dw-btn-success tw-dw-btn-lg tw-text-white">@lang('lang_v1.save_and_print')</button>
             </div>
         </div>
 
@@ -1195,117 +1211,179 @@
 
         });
         $(document).ready(function() {
+            function updateRowButtons() {
+                $('.jar-row .add-jar-row, .packet-row .add-packet-row').hide();
+                $('.jar-row:last .add-jar-row, .packet-row:last .add-packet-row').show();
+                $('.jar-row .remove-jar-row').toggle($('.jar-row').length > 1);
+                $('.packet-row .remove-packet-row').toggle($('.packet-row').length > 1);
+            }
+
+            function updateGrandTotal() {
+                var grandTotal = 0;
+                $('.jar-row').each(function() {
+                    var value = parseFloat($(this).find('input[name="jar_value[]"]').val()) || 0;
+                    var price = parseFloat($(this).find('input[name="jar_price[]"]').val()) || 0;
+                    grandTotal += value * price;
+                });
+                $('.packet-row').each(function() {
+                    var value = parseFloat($(this).find('input[name="packet_value[]"]').val()) || 0;
+                    var price = parseFloat($(this).find('input[name="packet_price[]"]').val()) || 0;
+                    grandTotal += value * price;
+                });
+                $('#grand_total').val(grandTotal.toFixed(2));
+            }
+
+            function validateAndUpdateStock($input) {
+                var $row = $input.closest('.jar-row, .packet-row');
+                var type = $row.hasClass('jar-row') ? 'jar' : 'packet';
+                var $stockInfo = $row.find(`.${type}-stock-info`);
+                var inputValue = parseFloat($input.val()) || 0;
+
+                // Retrieve original stock
+                var originalStock = parseInt($stockInfo.data('original-stock')) ||
+                    parseInt($stockInfo.text().replace('Available Stock: ', ''));
+
+                if (inputValue > originalStock) {
+                    alert(`Cannot exceed available stock of ${originalStock}`);
+                    $input.val(originalStock);
+                    inputValue = originalStock;
+                }
+
+                // Update available stock display
+                var updatedStock = originalStock - inputValue;
+                $stockInfo.text(`Available Stock: ${updatedStock}`)
+                    .data('original-stock', originalStock);
+
+                updateGrandTotal();
+            }
+
+            // Jar row handling
             $(document).on('click', '.add-jar-row', function() {
                 var newRow = $('.jar-row:first').clone();
+
+                // Reset input values and selections
                 newRow.find('input').val('');
                 newRow.find('select').prop('selectedIndex', 0);
-                newRow.find('.remove-jar-row').show();
+
+                // Remove existing stock info
+                newRow.find('.jar-stock-info').remove();
+
+                // Add unique IDs to new row elements
+                var newRowNumber = $('.jar-row').length + 1;
+                newRow.find('select[name="jar_type[]"]').attr('id', `jar_type_${newRowNumber}`);
+                newRow.find('input[name="jar_value[]"]').attr('id', `jar_value_${newRowNumber}`);
+                newRow.find('input[name="jar_price[]"]').attr('id', `jar_price_${newRowNumber}`);
+
+                // Append the new row
                 $('#jar-container').append(newRow);
-                updateJarRemoveButtons();
+
+                // Update button visibility and grand total
+                updateRowButtons();
+                updateGrandTotal();
             });
 
+            // Packet row handling
+            $(document).on('click', '.add-packet-row', function() {
+                var newRow = $('.packet-row:first').clone();
+
+                // Reset input values and selections
+                newRow.find('input').val('');
+                newRow.find('select').prop('selectedIndex', 0);
+
+                // Remove existing stock info
+                newRow.find('.packet-stock-info').remove();
+
+                // Add unique IDs to new row elements
+                var newRowNumber = $('.packet-row').length + 1;
+                newRow.find('select[name="packet_type[]"]').attr('id', `packet_type_${newRowNumber}`);
+                newRow.find('input[name="packet_value[]"]').attr('id', `packet_value_${newRowNumber}`);
+                newRow.find('input[name="packet_price[]"]').attr('id', `packet_price_${newRowNumber}`);
+
+                // Append the new row
+                $('#packet-container').append(newRow);
+
+                // Update button visibility and grand total
+                updateRowButtons();
+                updateGrandTotal();
+            });
+
+            // Remove jar row
             $(document).on('click', '.remove-jar-row', function() {
                 if ($('.jar-row').length > 1) {
                     $(this).closest('.jar-row').remove();
-                    updateJarRemoveButtons();
+                    updateRowButtons();
+                    updateGrandTotal();
                 }
             });
 
-            function updateJarRemoveButtons() {
-                $('.jar-row .remove-jar-row').toggle($('.jar-row').length > 1);
-            }
-
-            $(document).on('click', '.add-packet-row', function() {
-                var newRow = $('.packet-row:first').clone();
-                newRow.find('input').val('');
-                newRow.find('select').prop('selectedIndex', 0);
-                newRow.find('.remove-packet-row').show();
-                $('#packet-container').append(newRow);
-
-                updatePacketRemoveButtons();
-            });
-
+            // Remove packet row
             $(document).on('click', '.remove-packet-row', function() {
                 if ($('.packet-row').length > 1) {
                     $(this).closest('.packet-row').remove();
-                    updatePacketRemoveButtons();
+                    updateRowButtons();
+                    updateGrandTotal();
                 }
             });
 
-            function updatePacketRemoveButtons() {
-                $('.packet-row .remove-packet-row').toggle($('.packet-row').length > 1);
-            }
-            updateJarRemoveButtons();
-            updatePacketRemoveButtons();
-
-            function getLastRowNumber(type) {
-                return $(`.${type}-row`).length;
-            }
-
-            $(document).ready(function() {
-                $('select[name="jar_type[]"]').on('change', function() {
-                    var selectedValue = $(this).val();
-                    console.log('Jar Selected Value:', selectedValue);
-
-                    if (selectedValue && selectedValue !== "") {
-                        fetchStockAndPrice('jar', selectedValue);
-                    }
-                });
-
-                $('select[name="packet_type[]"]').on('change', function() {
-                    var selectedValue = $(this).val();
-                    console.log('Packet Selected Value:', selectedValue);
-
-                    if (selectedValue && selectedValue !== "") {
-                        fetchStockAndPrice('packet', selectedValue);
-                    }
-                });
+            // Event listeners for value inputs
+            $(document).on('input', 'input[name="jar_value[]"], input[name="packet_value[]"]', function() {
+                validateAndUpdateStock($(this));
             });
 
-            function fetchStockAndPrice(type, selectedValue) {
-                console.log('Fetching Stock and Price:', {
-                    type,
-                    selectedValue
-                });
+            // Event listeners for price inputs to recalculate grand total
+            $(document).on('input', 'input[name="jar_price[]"], input[name="packet_price[]"]', function() {
+                updateGrandTotal();
+            });
 
-                // Ensure selectedValue is not empty
-                if (!selectedValue) {
-                    console.error('No value selected');
-                    return;
+            // Stock and price fetching for dynamically added rows
+            $(document).on('change', 'select[name="jar_type[]"], select[name="packet_type[]"]', function() {
+                var $select = $(this);
+                var type = $select.attr('name').includes('jar_type') ? 'jar' : 'packet';
+                var selectedValue = $select.val();
+                var $row = $select.closest(`.${type}-row`);
+                var rowNumber = $row.index() + 1;
+
+                if (selectedValue && selectedValue !== "") {
+                    $.ajax({
+                        url: '/get-stock-and-price',
+                        method: 'GET',
+                        data: {
+                            value: selectedValue
+                        },
+                        success: function(response) {
+                            // Set the price in the price field
+                            $row.find(`#${type}_price_${rowNumber}`).val(0);
+
+                            // Remove any existing stock information
+                            $row.find(`.${type}-stock-info`).remove();
+
+                            // Add available stock information below the type field
+                            var $stockInfo = $(`<small class="${type}-stock-info text-muted">
+                        Available Stock: ${response.total_stock}
+                    </small>`);
+
+                            // Store original stock as a data attribute
+                            $stockInfo.data('original-stock', response.total_stock);
+
+                            $select.after($stockInfo);
+
+                            // Reset previous value
+                            $row.find(`input[name="${type}_value[]"]`).data('previous-value',
+                                0);
+
+                            // Update grand total
+                            updateGrandTotal();
+                        },
+                        error: function(xhr) {
+                            console.error('Error fetching stock and price:', xhr.responseText);
+                        }
+                    });
                 }
+            });
 
-                $.ajax({
-                    url: '/get-stock-and-price',
-                    method: 'GET',
-                    data: {
-                        type: type,
-                        value: selectedValue
-                    },
-                    success: function(response) {
-                        console.log('Stock and Price Response:', response);
-
-                        // Find the last row of the specific type
-                        var $lastRow = $(`.${type}-row:last`);
-                        var rowNumber = $lastRow.index() + 1;
-
-                        // Set the price in the price field
-                        $(`#${type}_price_${rowNumber}`).val(response.price);
-
-                        // Remove any existing stock information
-                        $lastRow.find(`.${type}-stock-info`).remove();
-
-                        // Add available stock information below the type field
-                        $lastRow.find(`#${type}_type_${rowNumber}`).after(
-                            `<small class="${type}-stock-info text-muted">
-                    Available Stock: ${response.total_stock}
-                </small>`
-                        );
-                    },
-                    error: function(xhr) {
-                        console.error('Error fetching stock and price:', xhr.responseText);
-                    }
-                });
-            }
+            // Initial setup
+            updateRowButtons();
+            updateGrandTotal();
         });
     </script>
 @endsection

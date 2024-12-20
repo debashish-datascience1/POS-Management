@@ -379,7 +379,8 @@ class FinalProductController extends Controller
             // Process each section
             for ($i = 0; $i < count($input['temperatures']); $i++) {
                 // Convert product_temperature to integer
-                $productTemperature = (int)$input['product_temperature'][$i];
+                $newProductTemperature = (int)$input['product_temperature'][$i];
+                $oldProductTemperature = (int)$existingProductTemperatures[$i];
 
                 // Restore previous quantity for the existing temperature
                 $previousTemperature = Temperature::where('temperature', $existingTemperatures[$i])
@@ -390,11 +391,6 @@ class FinalProductController extends Controller
                     $previousTemperature->temp_quantity += $existingQuantities[$i];
                     $previousTemperature->save();
                 }
-
-                // Find the corresponding temperature record in temperature_fixed table
-                $existingTemperatureFixed = DB::table('temperature_fixed')
-                    ->where('temperature', $productTemperature)
-                    ->first();
 
                 // Verify temperature quantity availability in Temperature table
                 $temperature = Temperature::where('temperature', $input['temperatures'][$i])
@@ -407,7 +403,7 @@ class FinalProductController extends Controller
 
                 // Store section data in arrays
                 $temperatures_array[] = $input['temperatures'][$i];
-                $product_temperatures_array[] = $input['product_temperature'][$i];
+                $product_temperatures_array[] = $newProductTemperature;
                 $quantities_array[] = $input['quantity'][$i];
                 $mix_array[] = $input['mix'][$i];
                 $total_array[] = $input['total'][$i];
@@ -420,30 +416,41 @@ class FinalProductController extends Controller
                 $newTotal = (float)$input['total'][$i];
                 $newMix = (float)$input['mix'][$i];
 
-                // Update temperature_fixed table
-                if ($existingTemperatureFixed) {
-                    // Calculate the difference in total and mix
-                    $totalDifference = $newTotal - $existingTotal[$i];
-                    $mixDifference = $newMix - $existingMix[$i];
-
-                    // Get the current quantity in temperature_fixed
-                    $currentQuantity = (float)$existingTemperatureFixed->quantity;
-
-                    // Update the quantity by adding the total difference
-                    $updatedQuantity = $currentQuantity + $totalDifference;
-
+                // Handle temperature_fixed table updates
+                if ($newProductTemperature !== $oldProductTemperature) {
+                    // Remove quantity from the old temperature record
                     DB::table('temperature_fixed')
-                        ->where('temperature', $productTemperature)
+                        ->where('temperature', $oldProductTemperature)
                         ->update([
-                            'quantity' => $updatedQuantity,
+                            'quantity' => DB::raw("GREATEST(0, COALESCE(quantity, 0) - {$newTotal})")
                         ]);
+
+                    // Add quantity to the new temperature record
+                    $existingNewTemperature = DB::table('temperature_fixed')
+                        ->where('temperature', $newProductTemperature)
+                        ->first();
+
+                    if ($existingNewTemperature) {
+                        // Update existing record
+                        DB::table('temperature_fixed')
+                            ->where('temperature', $newProductTemperature)
+                            ->update([
+                                'quantity' => DB::raw("COALESCE(quantity, 0) + {$newTotal}")
+                            ]);
                     } else {
-                    // Insert new record if it doesn't exist
-                    DB::table('temperature_fixed')->insert([
-                        'temperature' => $productTemperature,
-                        'quantity' => $newTotal,
-                        'mix' => $newMix
-                    ]);
+                        // Insert new record
+                        DB::table('temperature_fixed')->insert([
+                            'temperature' => $newProductTemperature,
+                            'quantity' => $newTotal,
+                        ]);
+                    }
+                } else {
+                    // If temperature hasn't changed, just update the existing record
+                    DB::table('temperature_fixed')
+                        ->where('temperature', $newProductTemperature)
+                        ->update([
+                            'quantity' => $newTotal,
+                        ]);
                 }
             }
 
@@ -482,81 +489,6 @@ class FinalProductController extends Controller
 
         return redirect()->action([\App\Http\Controllers\FinalProductController::class, 'index'])->with('status', $output);
     }
-
-    // public function destroy($id)
-    // {
-    //     if (!auth()->user()->can('final_product.delete')) {
-    //         abort(403, 'Unauthorized action.');
-    //     }
-
-    //     try {
-    //         $business_id = request()->session()->get('user.business_id');
-    //         $finalProduct = FinalProduct::where('business_id', $business_id)->findOrFail($id);
-
-    //         DB::beginTransaction();
-
-    //         // Get the temperatures and quantities from the JSON stored in the final product record
-    //         $productTemperatures = json_decode($finalProduct->product_temperature, true);
-    //         $totals = json_decode($finalProduct->total, true);
-    //         $quantities = json_decode($finalProduct->quantity, true);
-    //         $temperatures = json_decode($finalProduct->temperature, true);
-
-    //         // Restore the temperature quantities and update temperature_fixed
-    //         for ($i = 0; $i < count($productTemperatures); $i++) {
-    //             // Convert product temperature to integer
-    //             $productTemperature = (int)$productTemperatures[$i];
-    //             $totalQuantity = (float)$totals[$i];
-    //             $quantity = (float)$quantities[$i];
-
-    //             // Find the corresponding temperature record in temperature_fixed table
-    //             $temperatureFixed = DB::table('temperature_fixed')
-    //                 ->where('temperature', $productTemperature)
-    //                 ->first();
-
-    //             if (!$temperatureFixed) {
-    //                 throw new Exception("Temperature {$productTemperature} not found in temperature_fixed table");
-    //             }
-
-    //             // Subtract the total from temperature_fixed
-    //             DB::table('temperature_fixed')
-    //                 ->where('temperature', $productTemperature)
-    //                 ->update([
-    //                     'quantity' => DB::raw("GREATEST(COALESCE(quantity, 0) - {$totalQuantity}, 0)")
-    //                 ]);
-
-    //             // Restore the quantity in Temperature table
-    //             $temperature = Temperature::where('temperature', $temperatures[$i])->first();
-                
-    //             if (!$temperature) {
-    //                 throw new Exception("Temperature {$temperatures[$i]} not found");
-    //             }
-
-    //             // Add back the quantity that was used
-    //             $temperature->temp_quantity += $quantity;
-    //             $temperature->save();
-    //         }
-
-    //         // Delete the final product record
-    //         $finalProduct->delete();
-
-    //         DB::commit();
-
-    //         $output = [
-    //             'success' => true,
-    //             'msg' => __('lang_v1.final_product_deleted_successfully')
-    //         ];
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         \Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
-            
-    //         $output = [
-    //             'success' => false,
-    //             'msg' => $e->getMessage() ?: __('messages.something_went_wrong')
-    //         ];
-    //     }
-
-    //     return $output;
-    // }
 
     public function destroy($id)
     {

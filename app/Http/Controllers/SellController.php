@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Account;
+use App\Sell;
+use App\SellItem;
 use App\Business;
 use App\BusinessLocation;
 use App\Contact;
@@ -23,11 +25,14 @@ use App\Utils\ModuleUtil;
 use App\Utils\ProductUtil;
 use App\Utils\TransactionUtil;
 use App\Warranty;
-use DB;
+// use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+
 
 class SellController extends Controller
 {
@@ -748,7 +753,10 @@ class SellController extends Controller
         $change_return = $this->dummyPaymentLine;
 
         $jarOptions = ['5L', '5L(sp)', '10L', '10L(sp)', '20L', '20L(sp)'];
-        $packetOptions = ['100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)'];    
+        $packetOptions = ['100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)']; 
+        
+        $product_temperatures = DB::table('temperature_fixed')
+            ->pluck('temperature', 'temperature');
 
         return view('sell.create')
             ->with(compact(
@@ -779,63 +787,45 @@ class SellController extends Controller
                 'default_price_group_id',
                 'jarOptions',
                 'packetOptions',
-                'change_return'
+                'change_return',
+                'product_temperatures'
             ));
     }
 
     public function getStockAndPrice(Request $request)
     {
-        
         try {
-            \Log::info('Stock and Price Request:', [
-                'type' => $request->input('type'),
-                'value' => $request->input('value')
-            ]);
-
-            $business_id = auth()->user()->business_id;
-            $type = $request->input('type');
             $selectedValue = $request->input('value');
 
-            if (!in_array($type, ['jar', 'packet'])) {
-                return response()->json(['error' => 'Invalid type'], 400);
+            // Retrieve the stock summary directly
+            $stockSummary = DB::table('product_stock_summary')->first();
+
+            // If no record found, return default values
+            if (!$stockSummary) {
+                return response()->json([
+                    'total_stock' => 0,
+                    'price' => 0
+                ]);
             }
 
-            $packings = Packing::where('business_id', $business_id)->get();
-
-            $totalStock = 0;
-            $price = null;
-
-            foreach ($packings as $packing) {
-                $items = $packing->{$type};
-
-                if (!is_array($items)) {
-                    $items = json_decode($items, true);
-                }
-
-                if (!is_array($items)) {
-                    continue;
-                }
-
-                foreach ($items as $item) {
-                    $parts = explode(':', $item);
+            // Get the value from the column matching the selected value
+            $columns = Schema::getColumnListing('product_stock_summary');
+            
+            foreach ($columns as $column) {
+                if (strtolower(trim($column)) === strtolower(trim($selectedValue))) {
+                    $stockValue = $stockSummary->$column ?? 0;
                     
-                    // Use case-insensitive and trim comparison
-                    if (isset($parts[0]) && 
-                        strtolower(trim($parts[0])) === strtolower(trim($selectedValue))) {
-                        
-                        $stock = isset($parts[1]) ? intval($parts[1]) : 0;
-                        $totalStock += $stock;
-                        
-                        if ($price === null && isset($parts[2])) {
-                            $price = floatval($parts[2]);
-                        }
-                    }
+                    return response()->json([
+                        'total_stock' => $stockValue,
+                        'price' => 0  // Always return 0 for price as per your request
+                    ]);
                 }
             }
 
+            // If no matching column found
             return response()->json([
-                'total_stock' => $totalStock,
-                'price' => $price ?? 0
+                'total_stock' => 0,
+                'price' => 0
             ]);
 
         } catch (\Exception $e) {
@@ -852,7 +842,86 @@ class SellController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        // Add validation first
+        $request->validate([
+            'contact_id' => 'required|exists:contacts,id',
+            // Add other necessary validations
+        ]);
+
+        // Log the entire request for debugging
+        \Log::info('Sell Creation Request Data:', $request->all());
+
+        DB::beginTransaction();
+
+        try {
+            // Parse date with explicit format
+            $transactionDate = \Carbon\Carbon::createFromFormat('m/d/Y H:i', $request->transaction_date);
+
+            // Create the main sell record
+            $sell = Sell::create([
+                'location_id' => $request->location_id,
+                'contact_id' => $request->contact_id,
+                'pay_term_number' => $request->pay_term_number ?? null,
+                'pay_term_type' => $request->pay_term_type ?? null,
+                'transaction_date' => $transactionDate,
+                'status' => $request->status,
+                'invoice_scheme_id' => $request->invoice_scheme_id,
+                'invoice_no' => $request->invoice_no ?? null,
+                'shipping_details' => $request->shipping_details ?? null,
+                'shipping_address' => $request->shipping_address ?? null,
+                'shipping_charges' => $request->shipping_charges ?? 0,
+                'shipping_status' => $request->shipping_status ?? null,
+                'delivered_to' => $request->delivered_to ?? null,
+                'delivery_person' => $request->delivery_person ?? null,
+                'final_total' => $request->final_total ?? 0
+            ]);
+
+            // Debugging output
+            \Log::info('Sell record created with ID: ' . $sell->id);
+
+            // Handle Jar Items with more robust checking
+            if (!empty($request->jar_type) && is_array($request->jar_type)) {
+                foreach ($request->jar_type as $index => $jarType) {
+                    if (!empty($jarType)) {
+                        SellItem::create([
+                            'sell_id' => $sell->id,
+                            'item_type' => 'jar',
+                            'item_name' => $jarType,
+                            'quantity' => $request->jar_value[$index] ?? 0,
+                            'price' => $request->jar_price[$index] ?? 0
+                        ]);
+                    }
+                }
+            }
+
+            // Handle Packet Items with more robust checking
+            if (!empty($request->packet_type) && is_array($request->packet_type)) {
+                foreach ($request->packet_type as $index => $packetType) {
+                    if (!empty($packetType)) {
+                        SellItem::create([
+                            'sell_id' => $sell->id,
+                            'item_type' => 'packet',
+                            'item_name' => $packetType,
+                            'quantity' => $request->packet_value[$index] ?? 0,
+                            'price' => $request->packet_price[$index] ?? 0
+                        ]);
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return redirect()->route('sells.index')->with('success', 'Sell record created successfully');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            // Log the full error for debugging
+            \Log::error('Sell Creation Error: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+
+            return redirect()->back()->with('error', 'Error creating sell record: ' . $e->getMessage());
+        }
     }
 
     /**

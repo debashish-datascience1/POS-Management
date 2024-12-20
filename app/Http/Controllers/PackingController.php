@@ -352,34 +352,39 @@ class PackingController extends Controller
 
             $business_id = $request->session()->get('user.business_id');
 
+            // Explicitly define valid columns
+            $valid_columns = ['5L', '5L(sp)', '10L', '10L(sp)', '20L', '20L(sp)', 
+                            '100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)'];
+
             // Prepare arrays to store section data
             $product_temperatures_array = [];
             $quantities_array = [];
             $jars_array = [];
             $packets_array = [];
 
-            // Prepare a summary of jar and packet quantities by size
-            $stock_summary = [];
-
             // Process each section
             for ($i = 0; $i < count($input['product_temperature']); $i++) {
-                // Verify product temperature quantity availability using DB query
+                $current_temperature = $input['product_temperature'][$i];
+                
+                // Verify product temperature quantity availability
                 $temperature = DB::table('temperature_fixed')
-                    ->where('temperature', $input['product_temperature'][$i])
+                    ->where('temperature', $current_temperature)
                     ->where('quantity', '>=', $input['quantity'][$i])
                     ->first();
 
                 if (!$temperature) {
-                    throw new Exception("Insufficient quantity available for product temperature {$input['product_temperature'][$i]}");
+                    throw new Exception("Insufficient quantity available for product temperature {$current_temperature}");
                 }
 
+                // Prepare stock summary data for this section
+                $stock_summary = [];
+                
                 // Process Jars
                 $jarData = [];
                 if (!empty($input['jars'][$i])) {
                     foreach ($input['jars'][$i] as $jar) {
                         $jarData[] = $jar['size'] . ':' . $jar['quantity'] . ':' . $jar['price'];
                         
-                        // Track jar quantities
                         $stock_summary[$jar['size']] = 
                             ($stock_summary[$jar['size']] ?? 0) + $jar['quantity'];
                     }
@@ -391,32 +396,65 @@ class PackingController extends Controller
                     foreach ($input['packets'][$i] as $packet) {
                         $packetData[] = $packet['size'] . ':' . $packet['quantity'] . ':' . $packet['price'];
                         
-                        // Track packet quantities
                         $stock_summary[$packet['size']] = 
                             ($stock_summary[$packet['size']] ?? 0) + $packet['quantity'];
                     }
                 }
 
-                // Ensure at least one of jar or packet is provided for each section
+                // Ensure at least one of jar or packet is provided
                 if (empty($jarData) && empty($packetData)) {
                     throw new ValidationException(Validator::make([], []), [
-                        'jar_or_packet' => ["Either jar or packet must be provided for product temperature {$input['product_temperature'][$i]}"]
+                        'jar_or_packet' => ["Either jar or packet must be provided for product temperature {$current_temperature}"]
                     ]);
                 }
 
                 // Store section data in arrays
-                $product_temperatures_array[] = $input['product_temperature'][$i];
+                $product_temperatures_array[] = $current_temperature;
                 $quantities_array[] = $input['quantity'][$i];
                 $jars_array[] = !empty($jarData) ? implode(',', $jarData) : null;
                 $packets_array[] = !empty($packetData) ? implode(',', $packetData) : null;
 
-                // Update temperature quantity using DB query
+                // Check if this temperature already exists in product_stock_summary
+                $existing_record = DB::table('product_stock_summary')
+                    ->where('temperature', $current_temperature)
+                    ->first();
+
+                if ($existing_record) {
+                    // Prepare update data that handles null columns
+                    $updateData = [];
+                    foreach ($valid_columns as $size) {
+                        if (isset($stock_summary[$size]) && $stock_summary[$size] > 0) {
+                            // Use raw database expression to handle null columns
+                            $updateData[$size] = DB::raw("COALESCE(`{$size}`, 0) + {$stock_summary[$size]}");
+                        }
+                    }
+
+                    // Perform update if there are changes
+                    if (!empty($updateData)) {
+                        DB::table('product_stock_summary')
+                            ->where('temperature', $current_temperature)
+                            ->update($updateData);
+                    }
+                } else {
+                    // Insert new record
+                    $insertData = ['temperature' => $current_temperature];
+                    foreach ($valid_columns as $size) {
+                        if (isset($stock_summary[$size]) && $stock_summary[$size] > 0) {
+                            $insertData[$size] = $stock_summary[$size];
+                        }
+                    }
+                    $insertData['created_at'] = now();
+                    $insertData['updated_at'] = now();
+                    DB::table('product_stock_summary')->insert($insertData);
+                }
+
+                // Update temperature quantity
                 DB::table('temperature_fixed')
-                    ->where('temperature', $input['product_temperature'][$i])
+                    ->where('temperature', $current_temperature)
                     ->decrement('quantity', $input['quantity'][$i]);
             }
 
-            // Create single packing record with all sections
+            // Create packing record
             $packing = Packing::create([
                 'business_id' => $business_id,
                 'date' => $input['date'],
@@ -428,76 +466,15 @@ class PackingController extends Controller
                 'grand_total' => $input['grand_total']
             ]);
 
-            // Explicitly define valid columns
-            $valid_columns = ['5L', '5L(sp)', '10L', '10L(sp)', '20L', '20L(sp)', 
-                            '100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)'];
-
-            // Ensure only valid columns are used
-            $filtered_stock_summary = array_intersect_key(
-                $stock_summary, 
-                array_flip($valid_columns)
-            );
-
-            // Debug logging
-            \Log::info('Filtered Stock Summary', [
-                'original' => $stock_summary,
-                'filtered' => $filtered_stock_summary
-            ]);
-
-            // Update or Insert into product_stock_summary
-            $existing_summary = DB::table('product_stock_summary')->first();
-
-            if ($existing_summary) {
-                // Prepare update query
-                $updates = [];
-                $bindings = [];
-
-                foreach ($valid_columns as $size) {
-                    if (isset($filtered_stock_summary[$size]) && $filtered_stock_summary[$size] > 0) {
-                        $updates[] = "`{$size}` = COALESCE(`{$size}`, 0) + ?";
-                        $bindings[] = $filtered_stock_summary[$size];
-                    }
-                }
-
-                if (!empty($updates)) {
-                    $updateQuery = "UPDATE product_stock_summary SET " . implode(', ', $updates);
-                    
-                    \Log::info('Update Query Details', [
-                        'query' => $updateQuery,
-                        'bindings' => $bindings
-                    ]);
-
-                    DB::update($updateQuery, $bindings);
-                }
-            } else {
-                // Prepare insert data
-                $insertData = [];
-                foreach ($valid_columns as $size) {
-                    if (isset($filtered_stock_summary[$size]) && $filtered_stock_summary[$size] > 0) {
-                        $insertData[$size] = $filtered_stock_summary[$size];
-                    }
-                }
-
-                // Add timestamps
-                $insertData['created_at'] = now();
-                $insertData['updated_at'] = now();
-
-                // Insert only if we have data
-                if (!empty($insertData)) {
-                    \Log::info('Insert Data', ['data' => $insertData]);
-                    DB::table('product_stock_summary')->insert($insertData);
-                }
-            }
-
-            // Optional: Log the stock summary for debugging
-            \Log::info('Stock Summary', $stock_summary);
-
             DB::commit();
 
             $output = [
                 'success' => true,
                 'msg' => __('lang_v1.packing_added_successfully')
             ];
+
+            return redirect()->action([\App\Http\Controllers\PackingController::class, 'index'])->with('status', $output);
+
         } catch (ValidationException $e) {
             DB::rollBack();
             \Log::emergency("File:" . $e->getFile() . "Line:" . $e->getLine() . "Message:" . $e->getMessage());
@@ -510,9 +487,9 @@ class PackingController extends Controller
                 'success' => false,
                 'msg' => $e->getMessage() ?: __('messages.something_went_wrong')
             ];
-        }
 
-        return redirect()->action([\App\Http\Controllers\PackingController::class, 'index'])->with('status', $output);
+            return redirect()->back()->with('status', $output);
+        }
     }
 
     public function edit($id)
@@ -580,6 +557,8 @@ class PackingController extends Controller
             // Get old data to compare and adjust stock summary
             $old_jars = $this->safeJsonDecode($packing->jar);
             $old_packets = $this->safeJsonDecode($packing->packet);
+            $old_temperatures = $this->safeJsonDecode($packing->product_temperature);
+            $old_quantities = $this->safeJsonDecode($packing->quantity);
 
             // Prepare arrays to store section data
             $product_temperatures_array = [];
@@ -587,11 +566,36 @@ class PackingController extends Controller
             $jars_array = [];
             $packets_array = [];
 
-            // Prepare stock summary to track changes
-            $stock_summary_changes = [];
+            // Explicitly define valid columns
+            $valid_columns = ['5L', '5L(sp)', '10L', '10L(sp)', '20L', '20L(sp)', 
+                            '100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)'];
 
             // Process each section
             for ($i = 0; $i < count($input['product_temperature']); $i++) {
+                $current_temperature = $input['product_temperature'][$i];
+
+                // Find the index of this temperature in the old temperatures
+                $old_temperature_index = array_search($current_temperature, $old_temperatures);
+
+                // Prepare stock summary to track changes for this specific temperature
+                $stock_summary_changes = [];
+
+                // Check if temperature has changed for this section
+                $temperature_quantity_changed = $old_temperature_index === false || 
+                    $input['quantity'][$i] != $old_quantities[$old_temperature_index];
+
+                // If temperature has changed, verify temperature fixed availability
+                if ($temperature_quantity_changed) {
+                    $temperature = DB::table('temperature_fixed')
+                        ->where('temperature', $current_temperature)
+                        ->where('quantity', '>=', $input['quantity'][$i])
+                        ->first();
+
+                    if (!$temperature) {
+                        throw new Exception("Insufficient quantity available for product temperature {$current_temperature}");
+                    }
+                }
+
                 // Process Jars
                 $jarData = [];
                 if (!empty($input['jars'][$i])) {
@@ -599,7 +603,7 @@ class PackingController extends Controller
                         $jarData[] = $jar['size'] . ':' . $jar['quantity'] . ':' . $jar['price'];
                         
                         // Track jar quantity changes
-                        $old_jar_quantity = $this->getOldItemQuantity($old_jars, $i, $jar['size']);
+                        $old_jar_quantity = $this->getOldItemQuantity($old_jars, $old_temperature_index, $jar['size']);
                         $quantity_diff = $jar['quantity'] - $old_jar_quantity;
                         
                         $stock_summary_changes[$jar['size']] = 
@@ -614,7 +618,7 @@ class PackingController extends Controller
                         $packetData[] = $packet['size'] . ':' . $packet['quantity'] . ':' . $packet['price'];
                         
                         // Track packet quantity changes
-                        $old_packet_quantity = $this->getOldItemQuantity($old_packets, $i, $packet['size']);
+                        $old_packet_quantity = $this->getOldItemQuantity($old_packets, $old_temperature_index, $packet['size']);
                         $quantity_diff = $packet['quantity'] - $old_packet_quantity;
                         
                         $stock_summary_changes[$packet['size']] = 
@@ -625,15 +629,43 @@ class PackingController extends Controller
                 // Ensure at least one of jar or packet is provided for each section
                 if (empty($jarData) && empty($packetData)) {
                     throw new ValidationException(Validator::make([], []), [
-                        'jar_or_packet' => ["Either jar or packet must be provided for product temperature {$input['product_temperature'][$i]}"]
+                        'jar_or_packet' => ["Either jar or packet must be provided for product temperature {$current_temperature}"]
                     ]);
                 }
 
                 // Store section data in arrays
-                $product_temperatures_array[] = $input['product_temperature'][$i];
+                $product_temperatures_array[] = $current_temperature;
                 $quantities_array[] = $input['quantity'][$i];
                 $jars_array[] = !empty($jarData) ? implode(',', $jarData) : null;
                 $packets_array[] = !empty($packetData) ? implode(',', $packetData) : null;
+
+                // Update product stock summary for this specific temperature
+                if (!empty($stock_summary_changes)) {
+                    // Ensure only valid columns are used
+                    $filtered_stock_summary_changes = array_intersect_key(
+                        $stock_summary_changes, 
+                        array_flip($valid_columns)
+                    );
+
+                    // Perform stock summary update
+                    if (!empty($filtered_stock_summary_changes)) {
+                        // Prepare update data that handles null columns
+                        $updateData = [];
+                        foreach ($valid_columns as $size) {
+                            if (isset($filtered_stock_summary_changes[$size]) && $filtered_stock_summary_changes[$size] != 0) {
+                                // Use raw database expression to handle null columns
+                                $updateData[$size] = DB::raw("COALESCE(`{$size}`, 0) + {$filtered_stock_summary_changes[$size]}");
+                            }
+                        }
+
+                        // Perform update if there are changes
+                        if (!empty($updateData)) {
+                            DB::table('product_stock_summary')
+                                ->where('temperature', $current_temperature)
+                                ->update($updateData);
+                        }
+                    }
+                }
             }
 
             // Update the packing record
@@ -646,56 +678,6 @@ class PackingController extends Controller
                 'packet' => json_encode($packets_array),
                 'grand_total' => $input['grand_total']
             ]);
-
-            // Update product stock summary
-            if (!empty($stock_summary_changes)) {
-                // Explicitly define valid columns
-                $valid_columns = ['5L', '5L(sp)', '10L', '10L(sp)', '20L', '20L(sp)', 
-                                '100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)'];
-
-                // Ensure only valid columns are used
-                $filtered_stock_summary_changes = array_intersect_key(
-                    $stock_summary_changes, 
-                    array_flip($valid_columns)
-                );
-
-                $existing_summary = DB::table('product_stock_summary')->first();
-
-                if ($existing_summary) {
-                    // Prepare update query
-                    $updates = [];
-                    $bindings = [];
-
-                    foreach ($valid_columns as $size) {
-                        if (isset($filtered_stock_summary_changes[$size]) && $filtered_stock_summary_changes[$size] != 0) {
-                            $updates[] = "`{$size}` = COALESCE(`{$size}`, 0) + ?";
-                            $bindings[] = $filtered_stock_summary_changes[$size];
-                        }
-                    }
-
-                    if (!empty($updates)) {
-                        $updateQuery = "UPDATE product_stock_summary SET " . implode(', ', $updates);
-                        DB::update($updateQuery, $bindings);
-                    }
-                } else {
-                    // Prepare insert data
-                    $insertData = [];
-                    foreach ($valid_columns as $size) {
-                        if (isset($filtered_stock_summary_changes[$size]) && $filtered_stock_summary_changes[$size] != 0) {
-                            $insertData[$size] = $filtered_stock_summary_changes[$size];
-                        }
-                    }
-
-                    // Add timestamps
-                    $insertData['created_at'] = now();
-                    $insertData['updated_at'] = now();
-
-                    // Insert only if we have data
-                    if (!empty($insertData)) {
-                        DB::table('product_stock_summary')->insert($insertData);
-                    }
-                }
-            }
 
             DB::commit();
 
@@ -742,6 +724,114 @@ class PackingController extends Controller
         return is_string($value) ? json_decode($value, true) : $value;
     }
 
+    // public function destroy($id)
+    // {
+    //     if (!auth()->user()->can('packing.delete')) {
+    //         abort(403, 'Unauthorized action.');
+    //     }
+
+    //     try {
+    //         $business_id = request()->session()->get('user.business_id');
+    //         $packing = Packing::where('business_id', $business_id)->findOrFail($id);
+
+    //         DB::beginTransaction();
+
+    //         // Get the temperatures and quantities from the JSON stored in the packing record
+    //         $temperatures = json_decode($packing->product_temperature, true);
+    //         $quantities = json_decode($packing->quantity, true);
+    //         $jars = $this->safeJsonDecode($packing->jar);
+    //         $packets = $this->safeJsonDecode($packing->packet);
+
+    //         // Restore the temperature quantities using DB query
+    //         for ($i = 0; $i < count($temperatures); $i++) {
+    //             // Update quantity in temperature_fixed table
+    //             $updated = DB::table('temperature_fixed')
+    //                 ->where('temperature', $temperatures[$i])
+    //                 ->increment('quantity', $quantities[$i]);
+
+    //             if (!$updated) {
+    //                 throw new Exception("Temperature {$temperatures[$i]} not found");
+    //             }
+    //         }
+
+    //         // Prepare stock summary reduction
+    //         $stock_summary_reduction = [];
+
+    //         // Process jar quantities
+    //         if (!empty($jars)) {
+    //             foreach ($jars as $i => $jar_section) {
+    //                 if (!empty($jar_section)) {
+    //                     foreach (explode(',', $jar_section) as $jar_item) {
+    //                         list($size, $quantity, $price) = explode(':', $jar_item);
+    //                         $stock_summary_reduction[$size] = 
+    //                             ($stock_summary_reduction[$size] ?? 0) + $quantity;
+    //                     }
+    //                 }
+    //             }
+    //         }
+
+    //         // Process packet quantities
+    //         if (!empty($packets)) {
+    //             foreach ($packets as $i => $packet_section) {
+    //                 if (!empty($packet_section)) {
+    //                     foreach (explode(',', $packet_section) as $packet_item) {
+    //                         list($size, $quantity, $price) = explode(':', $packet_item);
+    //                         $stock_summary_reduction[$size] = 
+    //                             ($stock_summary_reduction[$size] ?? 0) + $quantity;
+    //                     }
+    //                 }
+    //             }
+    //         }
+
+    //         // Update product stock summary
+    //         if (!empty($stock_summary_reduction)) {
+    //             $existing_summary = DB::table('product_stock_summary')->first();
+
+    //             if ($existing_summary) {
+    //                 // Prepare update query
+    //                 $updates = [];
+    //                 $bindings = [];
+
+    //                 foreach ($stock_summary_reduction as $size => $quantity) {
+    //                     $updates[] = "`{$size}` = GREATEST(COALESCE(`{$size}`, 0) - ?, 0)";
+    //                     $bindings[] = $quantity;
+    //                 }
+
+    //                 if (!empty($updates)) {
+    //                     $updateQuery = "UPDATE product_stock_summary SET " . implode(', ', $updates);
+                        
+    //                     \Log::info('Stock Summary Reduction', [
+    //                         'query' => $updateQuery,
+    //                         'bindings' => $bindings
+    //                     ]);
+
+    //                     DB::update($updateQuery, $bindings);
+    //                 }
+    //             }
+    //         }
+
+    //         // Delete the packing record
+    //         $packing->delete();
+
+    //         DB::commit();
+
+    //         $output = [
+    //             'success' => true,
+    //             'msg' => __('lang_v1.packing_deleted_successfully')
+    //         ];
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         \Log::emergency("File:" . $e->getFile() . "Line:" . $e->getLine() . "Message:" . $e->getMessage());
+
+    //         $output = [
+    //             'success' => false,
+    //             'msg' => __('messages.something_went_wrong')
+    //         ];
+    //     }
+
+    //     return $output;
+    // }
+
     public function destroy($id)
     {
         if (!auth()->user()->can('packing.delete')) {
@@ -760,70 +850,68 @@ class PackingController extends Controller
             $jars = $this->safeJsonDecode($packing->jar);
             $packets = $this->safeJsonDecode($packing->packet);
 
-            // Restore the temperature quantities using DB query
+            // Explicitly define valid columns
+            $valid_columns = ['5L', '5L(sp)', '10L', '10L(sp)', '20L', '20L(sp)', 
+                            '100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)'];
+
+            // Process each temperature section
             for ($i = 0; $i < count($temperatures); $i++) {
-                // Update quantity in temperature_fixed table
+                $current_temperature = $temperatures[$i];
+
+                // Restore the temperature quantity
                 $updated = DB::table('temperature_fixed')
-                    ->where('temperature', $temperatures[$i])
+                    ->where('temperature', $current_temperature)
                     ->increment('quantity', $quantities[$i]);
 
                 if (!$updated) {
-                    throw new Exception("Temperature {$temperatures[$i]} not found");
+                    throw new Exception("Temperature {$current_temperature} not found");
                 }
-            }
 
-            // Prepare stock summary reduction
-            $stock_summary_reduction = [];
+                // Prepare stock summary reduction for this specific temperature
+                $stock_summary_reduction = [];
 
-            // Process jar quantities
-            if (!empty($jars)) {
-                foreach ($jars as $i => $jar_section) {
-                    if (!empty($jar_section)) {
-                        foreach (explode(',', $jar_section) as $jar_item) {
-                            list($size, $quantity, $price) = explode(':', $jar_item);
-                            $stock_summary_reduction[$size] = 
-                                ($stock_summary_reduction[$size] ?? 0) + $quantity;
+                // Process Jars
+                if (!empty($jars[$i])) {
+                    foreach (explode(',', $jars[$i]) as $jar_item) {
+                        list($size, $quantity, $price) = explode(':', $jar_item);
+                        $stock_summary_reduction[$size] = 
+                            ($stock_summary_reduction[$size] ?? 0) + $quantity;
+                    }
+                }
+
+                // Process Packets
+                if (!empty($packets[$i])) {
+                    foreach (explode(',', $packets[$i]) as $packet_item) {
+                        list($size, $quantity, $price) = explode(':', $packet_item);
+                        $stock_summary_reduction[$size] = 
+                            ($stock_summary_reduction[$size] ?? 0) + $quantity;
+                    }
+                }
+
+                // Update product stock summary for this specific temperature
+                if (!empty($stock_summary_reduction)) {
+                    // Ensure only valid columns are used
+                    $filtered_stock_summary_reduction = array_intersect_key(
+                        $stock_summary_reduction, 
+                        array_flip($valid_columns)
+                    );
+
+                    if (!empty($filtered_stock_summary_reduction)) {
+                        // Prepare update data that handles null columns and ensures non-negative values
+                        $updateData = [];
+                        foreach ($valid_columns as $size) {
+                            if (isset($filtered_stock_summary_reduction[$size]) && $filtered_stock_summary_reduction[$size] > 0) {
+                                // Use raw database expression to handle null columns and ensure non-negative values
+                                $updateData[$size] = DB::raw("GREATEST(COALESCE(`{$size}`, 0) - {$filtered_stock_summary_reduction[$size]}, 0)");
+                            }
                         }
-                    }
-                }
-            }
 
-            // Process packet quantities
-            if (!empty($packets)) {
-                foreach ($packets as $i => $packet_section) {
-                    if (!empty($packet_section)) {
-                        foreach (explode(',', $packet_section) as $packet_item) {
-                            list($size, $quantity, $price) = explode(':', $packet_item);
-                            $stock_summary_reduction[$size] = 
-                                ($stock_summary_reduction[$size] ?? 0) + $quantity;
+                        // Perform update if there are changes
+                        if (!empty($updateData)) {
+                            DB::table('product_stock_summary')
+                                ->where('temperature', $current_temperature)
+                                ->update($updateData);
                         }
-                    }
-                }
-            }
-
-            // Update product stock summary
-            if (!empty($stock_summary_reduction)) {
-                $existing_summary = DB::table('product_stock_summary')->first();
-
-                if ($existing_summary) {
-                    // Prepare update query
-                    $updates = [];
-                    $bindings = [];
-
-                    foreach ($stock_summary_reduction as $size => $quantity) {
-                        $updates[] = "`{$size}` = GREATEST(COALESCE(`{$size}`, 0) - ?, 0)";
-                        $bindings[] = $quantity;
-                    }
-
-                    if (!empty($updates)) {
-                        $updateQuery = "UPDATE product_stock_summary SET " . implode(', ', $updates);
-                        
-                        \Log::info('Stock Summary Reduction', [
-                            'query' => $updateQuery,
-                            'bindings' => $bindings
-                        ]);
-
-                        DB::update($updateQuery, $bindings);
                     }
                 }
             }

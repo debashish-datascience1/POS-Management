@@ -152,7 +152,7 @@
                     [1, 'desc']
                 ],
                 "ajax": {
-                    "url": "/sells",
+                    "url": "/sells/list",
                     "data": function(d) {
                         if ($('#sell_list_filter_date_range').val()) {
                             var start = $('#sell_list_filter_date_range').data('daterangepicker')
