@@ -456,109 +456,136 @@
                         <span id="restaurant_module_span">
                         </span>
                     @endif
-                    <div class="row">
-                        <div class="col-sm-4">
-                            <div class="form-group">
-                                {!! Form::label('product_temperature[]', __('lang_v1.product_temperature') . ':*') !!}
-                                {!! Form::select('product_temperature[]', $product_temperatures, null, [
-                                    'class' => 'form-control product-temperature-select',
-                                    'placeholder' => __('messages.please_select'),
-                                    'required',
-                                ]) !!}
+                    <div id="product-groups-container">
+                        <div class="product-group">
+                            <!-- Product Temperature Section -->
+                            <div class="row product-row">
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        <label for="product_temperature_1">Product Temperature:*</label>
+                                        <select name="product_temperature[]" id="product_temperature_1"
+                                            class="form-control product-temperature-select" required>
+                                            <option value="">Please select</option>
+                                            @foreach ($product_temperatures as $key => $value)
+                                                <option value="{{ $key }}">{{ $value }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- Jar Details Section -->
+                                <div class="col-md-6">
+                                    <h4>Jar Details</h4>
+                                    <div class="jar-container">
+                                        <div class="jar-row">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="jar_type_1">Jar:</label>
+                                                        <select name="jar_type[]" id="jar_type_1" class="form-control">
+                                                            <option value="">Select Jar</option>
+                                                            @foreach ($jarOptions as $option)
+                                                                <option value="{{ $option }}">{{ $option }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="jar_value_1">Value:</label>
+                                                        <input type="text" name="jar_value[]" id="jar_value_1"
+                                                            class="form-control" placeholder="Enter Value">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="jar_price_1">Jar Price:</label>
+                                                        <input type="number" name="jar_price[]" id="jar_price_1"
+                                                            class="form-control" placeholder="Enter Price" step="0.01"
+                                                            min="0">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-12">
+                                                    <div class="form-group">
+                                                        <button type="button" class="btn btn-success add-jar-row">Add More
+                                                            Jar</button>
+                                                        <button type="button" class="btn btn-danger remove-jar-row"
+                                                            style="display: none;">Remove</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Packet Details Section -->
+                                <div class="col-md-6">
+                                    <h4>Packet Details</h4>
+                                    <div class="packet-container">
+                                        <div class="packet-row">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="packet_type_1">Packet:</label>
+                                                        <select name="packet_type[]" id="packet_type_1" class="form-control">
+                                                            <option value="">Select Packet</option>
+                                                            @foreach ($packetOptions as $option)
+                                                                <option value="{{ $option }}">{{ $option }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="packet_value_1">Value:</label>
+                                                        <input type="text" name="packet_value[]" id="packet_value_1"
+                                                            class="form-control" placeholder="Enter Value">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="packet_price_1">Packet Price:</label>
+                                                        <input type="number" name="packet_price[]" id="packet_price_1"
+                                                            class="form-control" placeholder="Enter Price" step="0.01"
+                                                            min="0">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-12">
+                                                    <div class="form-group">
+                                                        <button type="button" class="btn btn-success add-packet-row">Add More
+                                                            Packet</button>
+                                                        <button type="button" class="btn btn-danger remove-packet-row"
+                                                            style="display: none;">Remove</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Remove Product Group Button -->
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-danger remove-product-group"
+                                        style="display: none;">Remove Product Group</button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h4>Jar Details</h4>
-                            <div id="jar-container">
-                                <div class="jar-row">
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label for="jar_type_1">Jar:</label>
-                                                <select name="jar_type[]" id="jar_type_1" class="form-control">
-                                                    <option value="">Select Jar</option>
-                                                    @foreach ($jarOptions as $option)
-                                                        <option value="{{ $option }}">{{ $option }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label for="jar_value_1">Value:</label>
-                                                <input type="text" name="jar_value[]" id="jar_value_1"
-                                                    class="form-control" placeholder="Enter Value">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label for="jar_price_1">Jar Price:</label>
-                                                <input type="number" name="jar_price[]" id="jar_price_1"
-                                                    class="form-control" placeholder="Enter Price" step="0.01"
-                                                    min="0">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div class="form-group">
-                                                <button type="button" class="btn btn-success add-jar-row">Add More
-                                                    Jar</button>
-                                                <button type="button" class="btn btn-danger remove-jar-row"
-                                                    style="display: none;">Remove</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div class="col-md-6">
-                            <h4>Packet Details</h4>
-                            <div id="packet-container">
-                                <div class="packet-row">
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label for="packet_type_1">Packet:</label>
-                                                <select name="packet_type[]" id="packet_type_1" class="form-control">
-                                                    <option value="">Select Packet</option>
-                                                    @foreach ($packetOptions as $option)
-                                                        <option value="{{ $option }}">{{ $option }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label for="packet_value_1">Value:</label>
-                                                <input type="text" name="packet_value[]" id="packet_value_1"
-                                                    class="form-control" placeholder="Enter Value">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label for="packet_price_1">Packet Price:</label>
-                                                <input type="number" name="packet_price[]" id="packet_price_1"
-                                                    class="form-control" placeholder="Enter Price" step="0.01"
-                                                    min="0">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div class="form-group">
-                                                <button type="button" class="btn btn-success add-packet-row">Add More
-                                                    Packet</button>
-                                                <button type="button" class="btn btn-danger remove-packet-row"
-                                                    style="display: none;">Remove</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                    <!-- Add More Product Group Button -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button type="button" class="btn btn-primary add-product-group">Add More Product</button>
                         </div>
                     </div>
                     <div class="row">
@@ -1218,17 +1245,98 @@
                 $('.packet-row .remove-packet-row').toggle($('.packet-row').length > 1);
             }
 
-            function updateGrandTotal() {
-                var grandTotal = 0;
-                $('.jar-row').each(function() {
-                    var value = parseFloat($(this).find('input[name="jar_value[]"]').val()) || 0;
-                    var price = parseFloat($(this).find('input[name="jar_price[]"]').val()) || 0;
-                    grandTotal += value * price;
+            // Function to update all button states
+            function updateAllButtons() {
+                updateProductGroupButtons();
+                updateJarButtons();
+                updatePacketButtons();
+            }
+
+            // Update product group buttons visibility
+            function updateProductGroupButtons() {
+                $('.remove-product-group').toggle($('.product-group').length > 1);
+            }
+
+            // Update jar buttons visibility within each product group
+            function updateJarButtons() {
+                $('.product-group').each(function() {
+                    const $jarRows = $(this).find('.jar-row');
+                    $jarRows.find('.add-jar-row').hide();
+                    $jarRows.last().find('.add-jar-row').show();
+                    $jarRows.find('.remove-jar-row').toggle($jarRows.length > 1);
                 });
-                $('.packet-row').each(function() {
-                    var value = parseFloat($(this).find('input[name="packet_value[]"]').val()) || 0;
-                    var price = parseFloat($(this).find('input[name="packet_price[]"]').val()) || 0;
-                    grandTotal += value * price;
+            }
+
+            // Update packet buttons visibility within each product group
+            function updatePacketButtons() {
+                $('.product-group').each(function() {
+                    const $packetRows = $(this).find('.packet-row');
+                    $packetRows.find('.add-packet-row').hide();
+                    $packetRows.last().find('.add-packet-row').show();
+                    $packetRows.find('.remove-packet-row').toggle($packetRows.length > 1);
+                });
+            }
+
+            // Add new product group
+            $(document).on('click', '.add-product-group', function() {
+                const $lastGroup = $('.product-group:last');
+                const newGroup = $lastGroup.clone(true);
+                const newIndex = $('.product-group').length + 1;
+
+                // Reset all inputs and selects
+                newGroup.find('input').val('');
+                newGroup.find('select').prop('selectedIndex', 0);
+
+                // Remove any existing stock info
+                newGroup.find('.jar-stock-info, .packet-stock-info').remove();
+
+                // Update IDs for all elements in the new group
+                newGroup.find('[id]').each(function() {
+                    const oldId = $(this).attr('id');
+                    const newId = oldId.replace(/\_\d+$/, `_${newIndex}`);
+                    $(this).attr('id', newId);
+                });
+
+                // Keep only one jar row and one packet row in the new group
+                newGroup.find('.jar-row:not(:first)').remove();
+                newGroup.find('.packet-row:not(:first)').remove();
+
+                // Append the new group and update buttons
+                $('#product-groups-container').append(newGroup);
+                updateAllButtons();
+                updateGrandTotal();
+            });
+
+            // Remove product group
+            $(document).on('click', '.remove-product-group', function() {
+                if ($('.product-group').length > 1) {
+                    $(this).closest('.product-group').remove();
+                    updateAllButtons();
+                    updateGrandTotal();
+                }
+            });
+
+            function getGroupTemperature($element) {
+                return $element.closest('.product-group').find('select[name="product_temperature[]"]').val();
+            }
+
+            function updateGrandTotal() {
+                let grandTotal = 0;
+                $('.product-group').each(function() {
+                    $(this).find('.jar-row').each(function() {
+                        const value = parseFloat($(this).find('input[name="jar_value[]"]').val()) ||
+                            0;
+                        const price = parseFloat($(this).find('input[name="jar_price[]"]').val()) ||
+                            0;
+                        grandTotal += value * price;
+                    });
+                    $(this).find('.packet-row').each(function() {
+                        const value = parseFloat($(this).find('input[name="packet_value[]"]')
+                            .val()) || 0;
+                        const price = parseFloat($(this).find('input[name="packet_price[]"]')
+                            .val()) || 0;
+                        grandTotal += value * price;
+                    });
                 });
                 $('#grand_total').val(grandTotal.toFixed(2));
             }
@@ -1259,71 +1367,70 @@
 
             // Jar row handling
             $(document).on('click', '.add-jar-row', function() {
-                var newRow = $('.jar-row:first').clone();
+                const $container = $(this).closest('.product-group').find('.jar-container');
+                const $lastRow = $container.find('.jar-row:last');
+                const newRow = $lastRow.clone(true);
+                const rowIndex = $container.find('.jar-row').length + 1;
 
-                // Reset input values and selections
+                // Reset inputs and update IDs
                 newRow.find('input').val('');
                 newRow.find('select').prop('selectedIndex', 0);
-
-                // Remove existing stock info
                 newRow.find('.jar-stock-info').remove();
 
-                // Add unique IDs to new row elements
-                var newRowNumber = $('.jar-row').length + 1;
-                newRow.find('select[name="jar_type[]"]').attr('id', `jar_type_${newRowNumber}`);
-                newRow.find('input[name="jar_value[]"]').attr('id', `jar_value_${newRowNumber}`);
-                newRow.find('input[name="jar_price[]"]').attr('id', `jar_price_${newRowNumber}`);
+                newRow.find('[id]').each(function() {
+                    const oldId = $(this).attr('id');
+                    const newId = oldId.replace(/\_\d+$/, `_${rowIndex}`);
+                    $(this).attr('id', newId);
+                });
 
-                // Append the new row
-                $('#jar-container').append(newRow);
-
-                // Update button visibility and grand total
-                updateRowButtons();
+                $container.append(newRow);
+                updateAllButtons();
                 updateGrandTotal();
             });
 
-            // Packet row handling
+            // Your existing packet row handling
             $(document).on('click', '.add-packet-row', function() {
-                var newRow = $('.packet-row:first').clone();
+                const $container = $(this).closest('.product-group').find('.packet-container');
+                const $lastRow = $container.find('.packet-row:last');
+                const newRow = $lastRow.clone(true);
+                const rowIndex = $container.find('.packet-row').length + 1;
 
-                // Reset input values and selections
+                // Reset inputs and update IDs
                 newRow.find('input').val('');
                 newRow.find('select').prop('selectedIndex', 0);
-
-                // Remove existing stock info
                 newRow.find('.packet-stock-info').remove();
 
-                // Add unique IDs to new row elements
-                var newRowNumber = $('.packet-row').length + 1;
-                newRow.find('select[name="packet_type[]"]').attr('id', `packet_type_${newRowNumber}`);
-                newRow.find('input[name="packet_value[]"]').attr('id', `packet_value_${newRowNumber}`);
-                newRow.find('input[name="packet_price[]"]').attr('id', `packet_price_${newRowNumber}`);
+                newRow.find('[id]').each(function() {
+                    const oldId = $(this).attr('id');
+                    const newId = oldId.replace(/\_\d+$/, `_${rowIndex}`);
+                    $(this).attr('id', newId);
+                });
 
-                // Append the new row
-                $('#packet-container').append(newRow);
-
-                // Update button visibility and grand total
-                updateRowButtons();
+                $container.append(newRow);
+                updateAllButtons();
                 updateGrandTotal();
             });
 
             // Remove jar row
             $(document).on('click', '.remove-jar-row', function() {
-                if ($('.jar-row').length > 1) {
+                const $container = $(this).closest('.jar-container');
+                if ($container.find('.jar-row').length > 1) {
                     $(this).closest('.jar-row').remove();
-                    updateRowButtons();
+                    updateAllButtons();
                     updateGrandTotal();
                 }
             });
 
             // Remove packet row
             $(document).on('click', '.remove-packet-row', function() {
-                if ($('.packet-row').length > 1) {
+                const $container = $(this).closest('.packet-container');
+                if ($container.find('.packet-row').length > 1) {
                     $(this).closest('.packet-row').remove();
-                    updateRowButtons();
+                    updateAllButtons();
                     updateGrandTotal();
                 }
             });
+
 
             // Event listeners for value inputs
             $(document).on('input', 'input[name="jar_value[]"], input[name="packet_value[]"]', function() {
@@ -1343,14 +1450,31 @@
                 var $row = $select.closest(`.${type}-row`);
                 var rowNumber = $row.index() + 1;
 
+                // Get the temperature value from the same product group
+                var temperature = getGroupTemperature($select);
+
+                // Don't proceed if temperature isn't selected
+                if (!temperature) {
+                    alert('Please select a temperature first');
+                    $select.val(''); // Reset the selection
+                    return;
+                }
+
                 if (selectedValue && selectedValue !== "") {
                     $.ajax({
                         url: '/get-stock-and-price',
                         method: 'GET',
                         data: {
-                            value: selectedValue
+                            value: selectedValue,
+                            temperature: temperature
                         },
                         success: function(response) {
+                            if (response.error) {
+                                alert(response.error);
+                                $select.val('');
+                                return;
+                            }
+
                             // Set the price in the price field
                             $row.find(`#${type}_price_${rowNumber}`).val(0);
 
@@ -1368,17 +1492,32 @@
                             $select.after($stockInfo);
 
                             // Reset previous value
-                            $row.find(`input[name="${type}_value[]"]`).data('previous-value',
-                                0);
+                            $row.find(`input[name="${type}_value[]"]`).val('').data(
+                                'previous-value', 0);
 
                             // Update grand total
                             updateGrandTotal();
                         },
                         error: function(xhr) {
                             console.error('Error fetching stock and price:', xhr.responseText);
+                            alert('Error fetching stock information');
+                            $select.val('');
                         }
                     });
                 }
+            });
+
+            // Add validation for temperature selection
+            $(document).on('change', 'select[name="product_temperature[]"]', function() {
+                var $productGroup = $(this).closest('.product-group');
+
+                // Reset jar and packet selections when temperature changes
+                $productGroup.find('select[name="jar_type[]"], select[name="packet_type[]"]').val('');
+                $productGroup.find('.jar-stock-info, .packet-stock-info').remove();
+
+                // Reset all values
+                $productGroup.find('input[name="jar_value[]"], input[name="packet_value[]"]').val('');
+                updateGrandTotal();
             });
 
             // Initial setup
