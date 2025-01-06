@@ -335,7 +335,8 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/sells/convert-to-proforma/{id}', 'SellPosController@convertToProforma');
     Route::get('/sells/quotations', 'SellController@getQuotations');
     Route::get('/sells/draft-dt', 'SellController@getDraftDatables');
-    Route::resource('sells', 'SellController')->except(['show']);
+    Route::resource('sells', 'SellController');
+    Route::post('sells/store', [\App\Http\Controllers\SellController::class, 'store'])->name('sells.store');
     Route::get('/sells/copy-quotation/{id}', [SellPosController::class, 'copyQuotation']);
 
     Route::post('/import-purchase-products', [PurchaseController::class, 'importPurchaseProducts']);
@@ -356,6 +357,8 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/sells/quotations', [SellController::class, 'getQuotations']);
     Route::get('/sells/draft-dt', [SellController::class, 'getDraftDatables']);
     Route::resource('sells', SellController::class)->except(['show']);
+    Route::get('/sells', [SellController::class, 'index'])->name('sells.index');
+    Route::get('/sells/list', [SellController::class, 'getSells'])->name('sells.list');
 
     Route::get('/import-sales', [ImportSalesController::class, 'index']);
     Route::post('/import-sales/preview', [ImportSalesController::class, 'preview']);

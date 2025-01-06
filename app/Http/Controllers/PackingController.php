@@ -103,18 +103,13 @@ class PackingController extends Controller
                 ->select([
                     'id', 
                     'date', 
-                    'temperature', 
                     'product_temperature', 
                     'quantity', 
-                    'mix', 
-                    'total', 
                     'jar', 
                     'packet', 
                     'grand_total', 
                     'created_at'
-                ])->get();
-
-                // dd( $packings);
+                ]);
 
             return DataTables::of($packings)
                 ->addColumn('action', function ($row) {
@@ -131,16 +126,6 @@ class PackingController extends Controller
                                 </ul>
                             </div>';
                     return $html;
-                })
-                ->editColumn('temperature', function ($row) {
-                    try {
-                        $temps = is_array($row->temperature) ? $row->temperature : (is_string($row->temperature) ? json_decode($row->temperature, true) : []);
-                        return implode('<br>', array_map(function ($temp) {
-                            return is_numeric($temp) ? number_format((float)$temp, 1) . '°C' : '0.0°C';
-                        }, $temps ?: []));
-                    } catch (\Exception $e) {
-                        return '0.0°C';
-                    }
                 })
                 ->editColumn('product_temperature', function ($row) {
                     try {
@@ -162,79 +147,24 @@ class PackingController extends Controller
                         return '0.00';
                     }
                 })
-                ->editColumn('mix', function ($row) {
-                    try {
-                        $mixes = is_array($row->mix) ? $row->mix : (is_string($row->mix) ? json_decode($row->mix, true) : []);
-                        return implode('<br>', array_map(function ($mix) {
-                            return is_numeric($mix) ? number_format((float)$mix, 2) . '%' : '0.00%';
-                        }, $mixes ?: []));
-                    } catch (\Exception $e) {
-                        return '0.00%';
-                    }
-                })
-                ->editColumn('total', function ($row) {
-                    try {
-                        $totals = is_array($row->total) ? $row->total : (is_string($row->total) ? json_decode($row->total, true) : []);
-                        return implode('<br>', array_map(function ($total) {
-                            return is_numeric($total) ? number_format((float)$total, 2) : '0.00';
-                        }, $totals ?: []));
-                    } catch (\Exception $e) {
-                        return '0.00';
-                    }
-                })
                 ->editColumn('jar', function ($row) {
-                    try {
-                        $jars = is_string($row->jar) ? json_decode($row->jar, true) : $row->jar;
-                        
-                        if (!is_array($jars)) {
-                            return '0.00';
-                        }
-                        
-                        return implode('<br>', array_map(function ($jar) {
-                            // Each jar should have 'size' and 'quantity' properties
-                            if (isset($jar['size']) && isset($jar['quantity'])) {
-                                return $jar['size'] . ': ' . number_format((float)$jar['quantity'], 2);
-                            }
-                            return '0.00';
-                        }, $jars));
-                    } catch (\Exception $e) {
-                        return '0.00';
-                    }
+                    return $this->formatPackingData($row->jar);
                 })
                 ->editColumn('packet', function ($row) {
-                    try {
-                        $packets = is_string($row->packet) ? json_decode($row->packet, true) : $row->packet;
-                        
-                        if (!is_array($packets)) {
-                            return '0.00';
-                        }
-                        
-                        return implode('<br>', array_map(function ($packet) {
-                            // Each packet should have 'size' and 'quantity' properties
-                            if (isset($packet['size']) && isset($packet['quantity'])) {
-                                return $packet['size'] . ': ' . number_format((float)$packet['quantity'], 2);
-                            }
-                            return '0.00';
-                        }, $packets));
-                    } catch (\Exception $e) {
-                        return '0.00';
-                    }
+                    return $this->formatPackingData($row->packet);
                 })
                 ->editColumn('grand_total', function ($row) {
                     return is_numeric($row->grand_total) ?
                         number_format((float)$row->grand_total, 2) : '0.00';
                 })
                 ->editColumn('date', function ($row) {
-                    return date('d-m-Y', strtotime($row->date));
+                    return \Carbon\Carbon::parse($row->date)->format('d/m/Y');
                 })
-                
+                ->editColumn('created_at', '{{@format_datetime($created_at)}}')
                 ->rawColumns([
                     'action', 
-                    'temperature', 
-                    'product_temperature', 
+                    'product_temperature',
                     'quantity', 
-                    'mix', 
-                    'total', 
                     'jar', 
                     'packet'
                 ])
@@ -243,28 +173,6 @@ class PackingController extends Controller
 
         return view('packing.index');
     }
-
-    // public function create()
-    // {
-    //     if (!auth()->user()->can('packing.create')) {
-    //         abort(403, 'Unauthorized action.');
-    //     }
-
-    //     $business_id = request()->session()->get('user.business_id');
-    //     $business_locations = BusinessLocation::forDropdown($business_id, false, true);
-    //     $bl_attributes = $business_locations['attributes'];
-    //     $business_locations = $business_locations['locations'];
-
-    //     $temperatures = Temperature::select('temperature')
-    //         ->distinct()
-    //         ->pluck('temperature', 'temperature');
-
-    //     return view('packing.create', compact(
-    //         'business_locations',
-    //         'bl_attributes',
-    //         'temperatures'
-    //     ));
-    // }
 
     public function create()
     {     
@@ -275,20 +183,17 @@ class PackingController extends Controller
         $business_locations = BusinessLocation::forDropdown($business_id, false, true);     
         $bl_attributes = $business_locations['attributes'];     
         $business_locations = $business_locations['locations'];     
-        $temperatures = Temperature::select('temperature')         
-            ->distinct()         
-            ->pluck('temperature', 'temperature');     
+    
         $product_temperatures = DB::table('temperature_fixed')
             ->pluck('temperature', 'temperature');     
         return view('packing.create', compact(         
             'business_locations',         
             'bl_attributes',         
-            'temperatures',         
             'product_temperatures'     
         )); 
     }
 
-    public function getTemperatureQuantity(Request $request)
+    public function getTemperatureQuantity1(Request $request)
     {
         try {
             $temperature = $request->input('temperature');
@@ -315,6 +220,36 @@ class PackingController extends Controller
                 'message' => 'Error fetching temperature quantity'
             ]);
         }
+    }
+
+    public function getTemperatureQuantity(Request $request)
+    {
+        try {
+            $temperature = $request->input('temperature');
+
+            $tempQuantity = DB::table('temperature_fixed')
+                ->where('temperature', $temperature)
+                ->value('quantity');
+
+            if ($tempQuantity !== null) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'temp_quantity' => $tempQuantity
+                    ]
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Temperature quantity not found'
+            ]);
+            } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching temperature quantity'
+                ]);
+            }
     }
 
     public function getPackingStock($location_id)
@@ -383,7 +318,7 @@ class PackingController extends Controller
             ]);
         }
     }
-    
+
     public function store(Request $request)
     {
         if (!auth()->user()->can('packing.create')) {
@@ -396,16 +331,10 @@ class PackingController extends Controller
             $input = $request->validate([
                 'date' => 'required|date',
                 'location_id' => 'required|exists:business_locations,id',
-                'temperatures' => 'required|array',
-                'temperatures.*' => 'required|string',
                 'product_temperature' => 'required|array', 
                 'product_temperature.*' => 'required|string', 
                 'quantity' => 'required|array',
                 'quantity.*' => 'required|numeric|min:0',
-                'mix' => 'required|array',
-                'mix.*' => 'required|numeric|min:0',
-                'total' => 'required|array',
-                'total.*' => 'required|numeric|min:0',
                 'jars' => 'nullable|array',
                 'jars.*' => 'array',
                 'jars.*.*' => 'array',
@@ -423,73 +352,115 @@ class PackingController extends Controller
 
             $business_id = $request->session()->get('user.business_id');
 
+            // Explicitly define valid columns
+            $valid_columns = ['5L', '5L(sp)', '10L', '10L(sp)', '20L', '20L(sp)', 
+                            '100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)'];
+
             // Prepare arrays to store section data
-            $temperatures_array = [];
-            $product_temperatures_array = []; // New array for product temperatures
+            $product_temperatures_array = [];
             $quantities_array = [];
-            $mix_array = [];
-            $total_array = [];
             $jars_array = [];
             $packets_array = [];
 
             // Process each section
-            for ($i = 0; $i < count($input['temperatures']); $i++) {
-                // Verify temperature quantity availability
-                $temperature = Temperature::where('temperature', $input['temperatures'][$i])
-                    ->where('temp_quantity', '>=', $input['quantity'][$i])
+            for ($i = 0; $i < count($input['product_temperature']); $i++) {
+                $current_temperature = $input['product_temperature'][$i];
+                
+                // Verify product temperature quantity availability
+                $temperature = DB::table('temperature_fixed')
+                    ->where('temperature', $current_temperature)
+                    ->where('quantity', '>=', $input['quantity'][$i])
                     ->first();
 
                 if (!$temperature) {
-                    throw new Exception("Insufficient quantity available for temperature {$input['temperatures'][$i]}");
+                    throw new Exception("Insufficient quantity available for product temperature {$current_temperature}");
                 }
 
-                // Format jar data for this section
+                // Prepare stock summary data for this section
+                $stock_summary = [];
+                
+                // Process Jars
                 $jarData = [];
                 if (!empty($input['jars'][$i])) {
                     foreach ($input['jars'][$i] as $jar) {
                         $jarData[] = $jar['size'] . ':' . $jar['quantity'] . ':' . $jar['price'];
+                        
+                        $stock_summary[$jar['size']] = 
+                            ($stock_summary[$jar['size']] ?? 0) + $jar['quantity'];
                     }
                 }
 
-                // Format packet data for this section
+                // Process Packets
                 $packetData = [];
                 if (!empty($input['packets'][$i])) {
                     foreach ($input['packets'][$i] as $packet) {
                         $packetData[] = $packet['size'] . ':' . $packet['quantity'] . ':' . $packet['price'];
+                        
+                        $stock_summary[$packet['size']] = 
+                            ($stock_summary[$packet['size']] ?? 0) + $packet['quantity'];
                     }
                 }
 
-                // Ensure at least one of jar or packet is provided for each section
+                // Ensure at least one of jar or packet is provided
                 if (empty($jarData) && empty($packetData)) {
                     throw new ValidationException(Validator::make([], []), [
-                        'jar_or_packet' => ["Either jar or packet must be provided for temperature {$input['temperatures'][$i]}"]
+                        'jar_or_packet' => ["Either jar or packet must be provided for product temperature {$current_temperature}"]
                     ]);
                 }
 
                 // Store section data in arrays
-                $temperatures_array[] = $input['temperatures'][$i];
-                $product_temperatures_array[] = $input['product_temperature'][$i]; // Add product temperature
+                $product_temperatures_array[] = $current_temperature;
                 $quantities_array[] = $input['quantity'][$i];
-                $mix_array[] = $input['mix'][$i];
-                $total_array[] = $input['total'][$i];
                 $jars_array[] = !empty($jarData) ? implode(',', $jarData) : null;
                 $packets_array[] = !empty($packetData) ? implode(',', $packetData) : null;
 
+                // Check if this temperature already exists in product_stock_summary
+                $existing_record = DB::table('product_stock_summary')
+                    ->where('temperature', $current_temperature)
+                    ->first();
+
+                if ($existing_record) {
+                    // Prepare update data that handles null columns
+                    $updateData = [];
+                    foreach ($valid_columns as $size) {
+                        if (isset($stock_summary[$size]) && $stock_summary[$size] > 0) {
+                            // Use raw database expression to handle null columns
+                            $updateData[$size] = DB::raw("COALESCE(`{$size}`, 0) + {$stock_summary[$size]}");
+                        }
+                    }
+
+                    // Perform update if there are changes
+                    if (!empty($updateData)) {
+                        DB::table('product_stock_summary')
+                            ->where('temperature', $current_temperature)
+                            ->update($updateData);
+                    }
+                } else {
+                    // Insert new record
+                    $insertData = ['temperature' => $current_temperature];
+                    foreach ($valid_columns as $size) {
+                        if (isset($stock_summary[$size]) && $stock_summary[$size] > 0) {
+                            $insertData[$size] = $stock_summary[$size];
+                        }
+                    }
+                    $insertData['created_at'] = now();
+                    $insertData['updated_at'] = now();
+                    DB::table('product_stock_summary')->insert($insertData);
+                }
+
                 // Update temperature quantity
-                $temperature->temp_quantity -= $input['quantity'][$i];
-                $temperature->save();
+                DB::table('temperature_fixed')
+                    ->where('temperature', $current_temperature)
+                    ->decrement('quantity', $input['quantity'][$i]);
             }
 
-            // Create single packing record with all sections
+            // Create packing record
             $packing = Packing::create([
                 'business_id' => $business_id,
                 'date' => $input['date'],
                 'location_id' => $input['location_id'],
-                'temperature' => json_encode($temperatures_array),
-                'product_temperature' => json_encode($product_temperatures_array), // Add product_temperature to the creation
+                'product_temperature' => json_encode($product_temperatures_array),
                 'quantity' => json_encode($quantities_array),
-                'mix' => json_encode($mix_array),
-                'total' => json_encode($total_array),
                 'jar' => json_encode($jars_array),
                 'packet' => json_encode($packets_array),
                 'grand_total' => $input['grand_total']
@@ -501,6 +472,9 @@ class PackingController extends Controller
                 'success' => true,
                 'msg' => __('lang_v1.packing_added_successfully')
             ];
+
+            return redirect()->action([\App\Http\Controllers\PackingController::class, 'index'])->with('status', $output);
+
         } catch (ValidationException $e) {
             DB::rollBack();
             \Log::emergency("File:" . $e->getFile() . "Line:" . $e->getLine() . "Message:" . $e->getMessage());
@@ -513,40 +487,10 @@ class PackingController extends Controller
                 'success' => false,
                 'msg' => $e->getMessage() ?: __('messages.something_went_wrong')
             ];
+
+            return redirect()->back()->with('status', $output);
         }
-
-        return redirect()->action([\App\Http\Controllers\PackingController::class, 'index'])->with('status', $output);
     }
-
-    // public function edit($id)
-    // {
-    //     if (!auth()->user()->can('packing.edit')) {
-    //         abort(403, 'Unauthorized action.');
-    //     }
-    
-    //     $business_id = request()->session()->get('user.business_id');
-    //     $packing = Packing::where('business_id', $business_id)->findOrFail($id);
-        
-    //     // Format the date to yyyy-MM-dd
-    //     $packing->date = date('Y-m-d', strtotime($packing->date));
-        
-    //     $business_locations = BusinessLocation::forDropdown($business_id, false, true);
-    //     $bl_attributes = $business_locations['attributes'];
-    //     $business_locations = $business_locations['locations'];
-    
-    //     // Get temperatures for dropdown and create an associative array
-    //     $temperatures_list = Temperature::select('temperature')
-    //         ->distinct()
-    //         ->pluck('temperature', 'temperature')
-    //         ->toArray();
-    
-    //     return view('packing.edit', compact(
-    //         'packing',
-    //         'business_locations',
-    //         'bl_attributes',
-    //         'temperatures_list'
-    //     ));
-    // }
 
     public function edit($id)
     {
@@ -564,12 +508,6 @@ class PackingController extends Controller
         $bl_attributes = $business_locations['attributes'];
         $business_locations = $business_locations['locations'];
 
-        // Get temperatures for dropdown and create an associative array
-        $temperatures_list = Temperature::select('temperature')
-            ->distinct()
-            ->pluck('temperature', 'temperature')
-            ->toArray();
-
         // Get product temperatures
         $product_temperatures = DB::table('temperature_fixed')
             ->pluck('temperature', 'temperature');
@@ -578,7 +516,6 @@ class PackingController extends Controller
             'packing',
             'business_locations',
             'bl_attributes',
-            'temperatures_list',
             'product_temperatures'
         ));
     }
@@ -595,16 +532,10 @@ class PackingController extends Controller
             $input = $request->validate([
                 'date' => 'required|date',
                 'location_id' => 'required|exists:business_locations,id',
-                // 'temperatures' => 'required|array',
-                // 'temperatures.*' => 'required|string',
-                'quantities' => 'required|array',
-                'quantities.*' => 'required|numeric|min:0',
-                'mix' => 'required|array',
-                'mix.*' => 'required|numeric|min:0',
-                'product_temperature' => 'required|array',
-                'product_temperature.*' => 'required|string',
-                'total' => 'required|array',
-                'total.*' => 'required|numeric|min:0',
+                'product_temperature' => 'required|array', 
+                'product_temperature.*' => 'required|string', 
+                'quantity' => 'required|array',
+                'quantity.*' => 'required|numeric|min:0',
                 'jars' => 'nullable|array',
                 'jars.*' => 'array',
                 'jars.*.*' => 'array',
@@ -623,92 +554,128 @@ class PackingController extends Controller
             $packing = Packing::findOrFail($id);
             $business_id = $request->session()->get('user.business_id');
 
-            // Get old temperatures and quantities
-            $old_temperatures = json_decode($packing->temperature, true);
-            $old_quantities = json_decode($packing->quantity, true);
+            // Get old data to compare and adjust stock summary
+            $old_jars = $this->safeJsonDecode($packing->jar);
+            $old_packets = $this->safeJsonDecode($packing->packet);
+            $old_temperatures = $this->safeJsonDecode($packing->product_temperature);
+            $old_quantities = $this->safeJsonDecode($packing->quantity);
 
-            // Prepare arrays for the new data
-            $temperatures_array = [];
+            // Prepare arrays to store section data
+            $product_temperatures_array = [];
             $quantities_array = [];
-            $mix_array = [];
-            $total_array = [];
             $jars_array = [];
             $packets_array = [];
-            $product_temperatures_array = []; // New array for product temperatures
+
+            // Explicitly define valid columns
+            $valid_columns = ['5L', '5L(sp)', '10L', '10L(sp)', '20L', '20L(sp)', 
+                            '100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)'];
 
             // Process each section
-            for ($i = 0; $i < count($input['temperatures']); $i++) {
-                $current_temp = $input['temperatures'][$i];
-                $new_quantity = $input['quantities'][$i];
-                
-                // Find the old quantity for this temperature if it exists
-                $old_quantity = 0;
-                $old_temp_index = array_search($current_temp, $old_temperatures);
-                if ($old_temp_index !== false) {
-                    $old_quantity = $old_quantities[$old_temp_index];
+            for ($i = 0; $i < count($input['product_temperature']); $i++) {
+                $current_temperature = $input['product_temperature'][$i];
+
+                // Find the index of this temperature in the old temperatures
+                $old_temperature_index = array_search($current_temperature, $old_temperatures);
+
+                // Prepare stock summary to track changes for this specific temperature
+                $stock_summary_changes = [];
+
+                // Check if temperature has changed for this section
+                $temperature_quantity_changed = $old_temperature_index === false || 
+                    $input['quantity'][$i] != $old_quantities[$old_temperature_index];
+
+                // If temperature has changed, verify temperature fixed availability
+                if ($temperature_quantity_changed) {
+                    $temperature = DB::table('temperature_fixed')
+                        ->where('temperature', $current_temperature)
+                        ->where('quantity', '>=', $input['quantity'][$i])
+                        ->first();
+
+                    if (!$temperature) {
+                        throw new Exception("Insufficient quantity available for product temperature {$current_temperature}");
+                    }
                 }
 
-                // Calculate the difference in quantity
-                $quantity_difference = $new_quantity - $old_quantity;
-
-                // Update temperature stock
-                $temperature = Temperature::where('temperature', $current_temp)->first();
-                if (!$temperature) {
-                    throw new Exception("Temperature {$current_temp} not found");
-                }
-
-                if ($quantity_difference > 0 && $temperature->temp_quantity < $quantity_difference) {
-                    throw new Exception("Insufficient quantity available for temperature {$current_temp}");
-                }
-
-                // Update the temperature quantity
-                $temperature->temp_quantity -= $quantity_difference;
-                $temperature->save();
-
-                // Format jar data for this section
+                // Process Jars
                 $jarData = [];
                 if (!empty($input['jars'][$i])) {
                     foreach ($input['jars'][$i] as $jar) {
                         $jarData[] = $jar['size'] . ':' . $jar['quantity'] . ':' . $jar['price'];
+                        
+                        // Track jar quantity changes
+                        $old_jar_quantity = $this->getOldItemQuantity($old_jars, $old_temperature_index, $jar['size']);
+                        $quantity_diff = $jar['quantity'] - $old_jar_quantity;
+                        
+                        $stock_summary_changes[$jar['size']] = 
+                            ($stock_summary_changes[$jar['size']] ?? 0) + $quantity_diff;
                     }
                 }
 
-                // Format packet data for this section
+                // Process Packets
                 $packetData = [];
                 if (!empty($input['packets'][$i])) {
                     foreach ($input['packets'][$i] as $packet) {
                         $packetData[] = $packet['size'] . ':' . $packet['quantity'] . ':' . $packet['price'];
+                        
+                        // Track packet quantity changes
+                        $old_packet_quantity = $this->getOldItemQuantity($old_packets, $old_temperature_index, $packet['size']);
+                        $quantity_diff = $packet['quantity'] - $old_packet_quantity;
+                        
+                        $stock_summary_changes[$packet['size']] = 
+                            ($stock_summary_changes[$packet['size']] ?? 0) + $quantity_diff;
                     }
                 }
 
                 // Ensure at least one of jar or packet is provided for each section
                 if (empty($jarData) && empty($packetData)) {
                     throw new ValidationException(Validator::make([], []), [
-                        'jar_or_packet' => ["Either jar or packet must be provided for temperature {$current_temp}"]
+                        'jar_or_packet' => ["Either jar or packet must be provided for product temperature {$current_temperature}"]
                     ]);
                 }
 
                 // Store section data in arrays
-                $temperatures_array[] = $current_temp;
-                $quantities_array[] = $new_quantity;
-                $mix_array[] = $input['mix'][$i];
-                $total_array[] = $input['total'][$i];
+                $product_temperatures_array[] = $current_temperature;
+                $quantities_array[] = $input['quantity'][$i];
                 $jars_array[] = !empty($jarData) ? implode(',', $jarData) : null;
                 $packets_array[] = !empty($packetData) ? implode(',', $packetData) : null;
-                $product_temperatures_array[] = $input['product_temperature'][$i]; // Add product temperature
+
+                // Update product stock summary for this specific temperature
+                if (!empty($stock_summary_changes)) {
+                    // Ensure only valid columns are used
+                    $filtered_stock_summary_changes = array_intersect_key(
+                        $stock_summary_changes, 
+                        array_flip($valid_columns)
+                    );
+
+                    // Perform stock summary update
+                    if (!empty($filtered_stock_summary_changes)) {
+                        // Prepare update data that handles null columns
+                        $updateData = [];
+                        foreach ($valid_columns as $size) {
+                            if (isset($filtered_stock_summary_changes[$size]) && $filtered_stock_summary_changes[$size] != 0) {
+                                // Use raw database expression to handle null columns
+                                $updateData[$size] = DB::raw("COALESCE(`{$size}`, 0) + {$filtered_stock_summary_changes[$size]}");
+                            }
+                        }
+
+                        // Perform update if there are changes
+                        if (!empty($updateData)) {
+                            DB::table('product_stock_summary')
+                                ->where('temperature', $current_temperature)
+                                ->update($updateData);
+                        }
+                    }
+                }
             }
 
             // Update the packing record
             $packing->update([
                 'date' => $input['date'],
                 'location_id' => $input['location_id'],
-                'temperature' => json_encode($temperatures_array),
+                'product_temperature' => json_encode($product_temperatures_array),
                 'quantity' => json_encode($quantities_array),
-                'mix' => json_encode($mix_array),
-                'total' => json_encode($total_array),
                 'jar' => json_encode($jars_array),
                 'packet' => json_encode($packets_array),
-                'product_temperature' => json_encode($product_temperatures_array), // Add product temperature
                 'grand_total' => $input['grand_total']
             ]);
 
@@ -735,55 +702,110 @@ class PackingController extends Controller
         return redirect()->action([\App\Http\Controllers\PackingController::class, 'index'])->with('status', $output);
     }
 
-      public function destroy($id)
+    private function getOldItemQuantity($old_items, $section_index, $size)
+    {
+        if (empty($old_items) || !isset($old_items[$section_index])) {
+            return 0;
+        }
+
+        $old_section_items = explode(',', $old_items[$section_index]);
+        foreach ($old_section_items as $item) {
+            $item_parts = explode(':', $item);
+            if ($item_parts[0] === $size) {
+                return (int)$item_parts[1];
+            }
+        }
+
+        return 0;
+    }
+
+    private function safeJsonDecode($value)
+    {
+        return is_string($value) ? json_decode($value, true) : $value;
+    }
+
+    public function destroy($id)
     {
         if (!auth()->user()->can('packing.delete')) {
             abort(403, 'Unauthorized action.');
         }
 
         try {
+            $business_id = request()->session()->get('user.business_id');
+            $packing = Packing::where('business_id', $business_id)->findOrFail($id);
+
             DB::beginTransaction();
 
-            $business_id = request()->session()->get('user.business_id');
-            
-            // Find the packing record with additional validation
-            $packing = Packing::where('business_id', $business_id)
-                ->where('id', $id)
-                ->first();
-                
-            if (!$packing) {
-                return response()->json([
-                    'success' => false,
-                    'msg' => __('messages.not_found')
-                ], 404);
-            }
-
             // Get the temperatures and quantities from the JSON stored in the packing record
-            $temperatures = json_decode($packing->temperature, true) ?? [];
-            $quantities = json_decode($packing->quantity, true) ?? [];
+            $temperatures = json_decode($packing->product_temperature, true);
+            $quantities = json_decode($packing->quantity, true);
+            $jars = $this->safeJsonDecode($packing->jar);
+            $packets = $this->safeJsonDecode($packing->packet);
 
-            // Validate the arrays have matching lengths
-            if (count($temperatures) !== count($quantities)) {
-                throw new Exception('Data integrity error: Mismatched temperature and quantity records');
-            }
+            // Explicitly define valid columns
+            $valid_columns = ['5L', '5L(sp)', '10L', '10L(sp)', '20L', '20L(sp)', 
+                            '100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)'];
 
-            // Restore the temperature quantities
-            foreach ($temperatures as $index => $temp) {
-                $temperature = Temperature::where('temperature', $temp)->first();
-                
-                if (!$temperature) {
-                    throw new Exception("Temperature record {$temp} not found");
+            // Process each temperature section
+            for ($i = 0; $i < count($temperatures); $i++) {
+                $current_temperature = $temperatures[$i];
+
+                // Restore the temperature quantity
+                $updated = DB::table('temperature_fixed')
+                    ->where('temperature', $current_temperature)
+                    ->increment('quantity', $quantities[$i]);
+
+                if (!$updated) {
+                    throw new Exception("Temperature {$current_temperature} not found");
                 }
 
-                // Validate quantity before adding back
-                $quantity = $quantities[$index];
-                if (!is_numeric($quantity) || $quantity < 0) {
-                    throw new Exception("Invalid quantity value for temperature {$temp}");
+                // Prepare stock summary reduction for this specific temperature
+                $stock_summary_reduction = [];
+
+                // Process Jars
+                if (!empty($jars[$i])) {
+                    foreach (explode(',', $jars[$i]) as $jar_item) {
+                        list($size, $quantity, $price) = explode(':', $jar_item);
+                        $stock_summary_reduction[$size] = 
+                            ($stock_summary_reduction[$size] ?? 0) + $quantity;
+                    }
                 }
 
-                // Add back the quantity that was used
-                $temperature->temp_quantity = $temperature->temp_quantity + floatval($quantity);
-                $temperature->save();
+                // Process Packets
+                if (!empty($packets[$i])) {
+                    foreach (explode(',', $packets[$i]) as $packet_item) {
+                        list($size, $quantity, $price) = explode(':', $packet_item);
+                        $stock_summary_reduction[$size] = 
+                            ($stock_summary_reduction[$size] ?? 0) + $quantity;
+                    }
+                }
+
+                // Update product stock summary for this specific temperature
+                if (!empty($stock_summary_reduction)) {
+                    // Ensure only valid columns are used
+                    $filtered_stock_summary_reduction = array_intersect_key(
+                        $stock_summary_reduction, 
+                        array_flip($valid_columns)
+                    );
+
+                    if (!empty($filtered_stock_summary_reduction)) {
+                        // Prepare update data that handles null columns and ensures non-negative values
+                        $updateData = [];
+                        foreach ($valid_columns as $size) {
+                            if (isset($filtered_stock_summary_reduction[$size]) && $filtered_stock_summary_reduction[$size] > 0) {
+                                // Use raw database expression to handle null columns and ensure non-negative values
+                                $updateData[$size] = DB::raw("GREATEST(COALESCE(`{$size}`, 0) - {$filtered_stock_summary_reduction[$size]}, 0)");
+                            }
+                        }
+
+                        // Perform update if there are changes
+                        if (!empty($updateData)) {
+                            DB::table('product_stock_summary')
+                                ->where('temperature', $current_temperature)
+                                ->update($updateData);
+                        }
+                    }
+                }
             }
 
             // Delete the packing record
@@ -791,22 +813,21 @@ class PackingController extends Controller
 
             DB::commit();
 
-            return response()->json([
+            $output = [
                 'success' => true,
                 'msg' => __('lang_v1.packing_deleted_successfully')
-            ]);
-
+            ];
         } catch (\Exception $e) {
             DB::rollBack();
-            
-            \Log::emergency("File:" . $e->getFile(). 
-                "Line:" . $e->getLine(). 
-                "Message:" . $e->getMessage());
+            \Log::emergency("File:" . $e->getFile() . "Line:" . $e->getLine() . "Message:" . $e->getMessage());
 
-            return response()->json([
+            $output = [
                 'success' => false,
                 'msg' => __('messages.something_went_wrong')
-            ], 500);
+            ];
         }
+
+        return $output;
     }
+
 }
