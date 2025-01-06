@@ -21,13 +21,13 @@
             <table class="table table-bordered table-striped" id="sells_table">
                 <thead>
                     <tr>
-                        <th>@lang('messages.action')</th>
                         <th>@lang('messages.date')</th>
                         <th>@lang('sale.customer_name')</th>
                         <th>@lang('lang_v1.contact_no')</th>
                         <th>@lang('sale.total_items')</th>
                         <th>@lang('sale.total_amount')</th>
                         <th>@lang('lang_v1.shipping_status')</th>
+                        <th>@lang('messages.action')</th>
                     </tr>
                 </thead>
             </table>
@@ -44,17 +44,17 @@
             serverSide: true,
             ajax: '/sells',
             columns: [
-                { data: 'action', name: 'action', orderable: false, searchable: false },
                 { data: 'transaction_date', name: 'transaction_date' },
                 { data: 'customer_name', name: 'contacts.name' },
                 { data: 'mobile', name: 'contacts.mobile' },
                 { data: 'items_detail', name: 'items_detail' },
                 { data: 'final_total', name: 'final_total' },
                 { data: 'shipping_status', name: 'shipping_status' },
+                { data: 'action', name: 'action', orderable: false, searchable: false }
             ],
-            "order": [[ 1, "desc" ]],
+            "order": [[ 0, "desc" ]],  // Updated order index since action is now last
             createdRow: function(row, data, dataIndex) {
-                $(row).find('td:not(:first-child)').addClass('clickable')
+                $(row).find('td:not(:last-child)').addClass('clickable')
                     .on('click', function() {
                         window.location.href = '/sells/' + data.id;
                     });
