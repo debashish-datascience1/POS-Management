@@ -1,87 +1,176 @@
 @extends('layouts.app')
 
+@section('title', __('lang_v1.edit_salary'))
+
 @section('content')
-<div class="container">
-    <h2>Edit Salary</h2>
+<section class="content-header">
+    <h1>@lang('lang_v1.edit_salary')
+        <small>@lang('lang_v1.edit_existing_salary')</small>
+    </h1>
+</section>
 
-    <form action="{{ route('salaries.update', $salary->id) }}" method="POST">
-        @csrf
-        @method('PUT')
+<section class="content">
+    {!! Form::model($salary, ['url' => route('salaries.update', $salary->id), 'method' => 'PUT', 'id' => 'salary_form']) !!}
 
-        <div class="form-group">
-            <label for="employee_id">Employee</label>
-            <select name="employee_id" id="employee_id" class="form-control" required>
-                <option value="">Select Employee</option>
-                @foreach($employees as $employee)
-                    <option value="{{ $employee->id }}" {{ $salary->employee_id == $employee->id ? 'selected' : '' }}>{{ $employee->name }}</option>
-                @endforeach
-            </select>
+    <div class="box box-solid">
+        <div class="box-body">
+            <div class="row">
+                <!-- User Selection -->
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {!! Form::label('user_id', __('lang_v1.employee') . ':*') !!}
+                        {!! Form::select('user_id', 
+                            $users->mapWithKeys(function ($user) {
+                                return [$user->id => $user->first_name . ' ' . $user->last_name];
+                            }), 
+                            $salary->employee_id, 
+                            ['class' => 'form-control select2', 'placeholder' => __('lang_v1.please_select'), 'required']
+                        ) !!}
+                    </div>
+                </div>
+
+                <!-- Salary Date -->    
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {!! Form::label('salary_date', __('lang_v1.salary_date') . ':*') !!}
+                        {!! Form::text('salary_date', \Carbon\Carbon::parse($salary->salary_date)->format('Y-m-d'), ['class' => 'form-control datepicker', 'required']) !!}
+                    </div>
+                </div>
+
+                <!-- Basic Salary -->
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {!! Form::label('basic_salary', __('lang_v1.basic_salary') . ':*') !!}
+                        {!! Form::number('basic_salary', $salary->basic_salary, ['class' => 'form-control', 'required', 'min' => 0, 'step' => '0.01']) !!}
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Deduction -->
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {!! Form::label('deduction', __('lang_v1.deduction') . ':') !!}
+                        {!! Form::number('deduction', $salary->deduction, ['class' => 'form-control', 'min' => 0, 'step' => '0.01']) !!}
+                    </div>
+                </div>
+
+                <!-- Tax Deduction -->
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {!! Form::label('tax_deduction', __('lang_v1.tax_deduction') . ':') !!}
+                        {!! Form::number('tax_deduction', $salary->tax_deduction, ['class' => 'form-control', 'min' => 0, 'step' => '0.01']) !!}
+                    </div>
+                </div>
+
+                <!-- Net Salary (readonly) -->
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {!! Form::label('net_salary', __('lang_v1.net_salary') . ':*') !!}
+                        {!! Form::number('net_salary', $salary->net_salary, ['class' => 'form-control', 'readonly', 'required']) !!}
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Bank Account Number -->
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {!! Form::label('bank_account_number', __('lang_v1.bank_account_number') . ':') !!}
+                        {!! Form::text('bank_account_number', $salary->bank_account_number, ['class' => 'form-control']) !!}
+                    </div>
+                </div>
+
+                <!-- Payment Mode -->
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {!! Form::label('payment_mode', __('lang_v1.payment_mode') . ':*') !!}
+                        {!! Form::select('payment_mode', 
+                            [
+                                'cash' => __('lang_v1.cash'),
+                                'bank_transfer' => __('lang_v1.bank_transfer'),
+                                'cheque' => __('lang_v1.cheque')
+                            ], 
+                            $salary->payment_mode, 
+                            ['class' => 'form-control select2', 'placeholder' => __('lang_v1.please_select'), 'required']
+                        ) !!}
+                    </div>
+                </div>
+
+                <!-- Salary Payment Mode -->
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {!! Form::label('salary_payment_mode', __('lang_v1.salary_payment_mode') . ':*') !!}
+                        {!! Form::select('salary_payment_mode', 
+                            [
+                                'monthly' => __('lang_v1.monthly'),
+                                'weekly' => __('lang_v1.weekly'),
+                                'daily' => __('lang_v1.daily')
+                            ], 
+                            $salary->salary_payment_mode, 
+                            ['class' => 'form-control select2', 'placeholder' => __('lang_v1.please_select'), 'required']
+                        ) !!}
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label for="salary_date">Salary Date</label>
-            <input type="date" name="salary_date" id="salary_date" class="form-control" required value="{{ $salary->salary_date }}">
+        <div class="box-footer">
+            <button type="submit" class="btn btn-primary pull-right">
+                @lang('messages.update')
+            </button>
+            <a href="{{ route('salaries.index') }}" class="btn btn-danger">
+                @lang('messages.cancel')
+            </a>
         </div>
+    </div>
 
-        <div class="form-group">
-            <label for="basic_salary">Basic Salary</label>
-            <input type="number" name="basic_salary" id="basic_salary" class="form-control" required value="{{ $salary->basic_salary }}" oninput="calculateNetSalary()">
-        </div>
+    {!! Form::close() !!}
+</section>
+@endsection
 
-        <div class="form-group">
-            <label for="deduction">Deduction (%)</label>
-            <input type="number" name="deduction" id="deduction" class="form-control" value="{{ $salary->deduction }}" oninput="calculateNetSalary()">
-        </div>
-
-        <div class="form-group">
-            <label for="tax_deduction">Tax Deduction (%)</label>
-            <input type="number" name="tax_deduction" id="tax_deduction" class="form-control" value="{{ $salary->tax_deduction }}" oninput="calculateNetSalary()">
-        </div>
-
-        <div class="form-group">
-            <label for="net_salary">Net Salary</label>
-            <input type="text" name="net_salary" id="net_salary" class="form-control" readonly value="{{ $salary->net_salary }}">
-        </div>
-
-        <div class="form-group">
-            <label for="bank_account_number">Bank Account Number</label>
-            <input type="text" name="bank_account_number" id="bank_account_number" class="form-control" required value="{{ $salary->bank_account_number }}">
-        </div>
-
-        <div class="form-group">
-            <label for="payment_mode">Payment Mode</label>
-            <select name="payment_mode" id="payment_mode" class="form-control" required>
-                <option value="Cash" {{ $salary->payment_mode == 'Cash' ? 'selected' : '' }}>Cash</option>
-                <option value="Bank Transfer" {{ $salary->payment_mode == 'Bank Transfer' ? 'selected' : '' }}>Bank Transfer</option>
-                <option value="Cheque" {{ $salary->payment_mode == 'Cheque' ? 'selected' : '' }}>Cheque</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="salary_payment_mode">Salary Payment Mode</label>
-            <select name="salary_payment_mode" id="salary_payment_mode" class="form-control" required>
-                <option value="Monthly" {{ $salary->salary_payment_mode == 'Monthly' ? 'selected' : '' }}>Monthly</option>
-                <option value="Weekly" {{ $salary->salary_payment_mode == 'Weekly' ? 'selected' : '' }}>Weekly</option>
-                <option value="Daily" {{ $salary->salary_payment_mode == 'Daily' ? 'selected' : '' }}>Daily</option>
-            </select>
-        </div>
-
-        <button type="submit" class="btn btn-primary">Update Salary</button>
-    </form>
-</div>
-
+@section('javascript')
 <script>
-    function calculateNetSalary() {
-        var basicSalary = parseFloat(document.getElementById('basic_salary').value) || 0;
-        var deduction = parseFloat(document.getElementById('deduction').value) || 0;
-        var taxDeduction = parseFloat(document.getElementById('tax_deduction').value) || 0;
+    $(document).ready(function() {
+        // Initialize date picker
+        $('.datepicker').datepicker({
+            format: 'yyyy-mm-dd',
+            autoclose: true
+        });
 
-        var deductionAmount = (basicSalary * deduction) / 100;
-        var taxDeductionAmount = (basicSalary * taxDeduction) / 100;
+        // Calculate Net Salary
+        function calculateNetSalary() {
+            var basicSalary = parseFloat($('#basic_salary').val()) || 0;
+            var deduction = parseFloat($('#deduction').val()) || 0;
+            var taxDeduction = parseFloat($('#tax_deduction').val()) || 0;
 
-        var netSalary = basicSalary - deductionAmount - taxDeductionAmount;
+            if (deduction > 0 && deduction <= 100) {
+                deduction = (deduction / 100) * basicSalary;  // Convert percentage to amount
+            }
 
-        document.getElementById('net_salary').value = Math.floor(netSalary); // Math.floor to remove decimals
-    }
+            if (taxDeduction > 0 && taxDeduction <= 100) {
+                taxDeduction = (taxDeduction / 100) * basicSalary;  // Convert percentage to amount
+            }
+
+            var netSalary = basicSalary - deduction - taxDeduction;
+            $('#net_salary').val(netSalary.toFixed(2));
+        }
+
+        // Bind calculation to input changes
+        $('#basic_salary, #deduction, #tax_deduction').on('input', calculateNetSalary);
+
+        // Form validation
+        $('#salary_form').validate({
+            rules: {
+                user_id: 'required',
+                salary_date: 'required',
+                basic_salary: {
+                    required: true,
+                    number: true,
+                    min: 0
+                }
+            }
+        });
+    });
 </script>
 @endsection

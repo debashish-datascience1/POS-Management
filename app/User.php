@@ -10,6 +10,9 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Salary;
+use App\EmployeeAdvance;
+
 
 class User extends Authenticatable
 {
@@ -324,4 +327,14 @@ class User extends Authenticatable
 
         return $img_src;
     }
+    public function salaries()
+    {
+        return $this->hasMany(Salary::class);
+    }
+
+    public function employeeAdvances()
+    {
+        return $this->hasMany(EmployeeAdvance::class, 'user_id', 'id');
+    }
+
 }

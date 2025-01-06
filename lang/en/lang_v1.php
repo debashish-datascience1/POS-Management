@@ -204,6 +204,60 @@ return [
     'employee_advances' => 'Employee Advancce',
     'all_employee_advances' => 'All Employee Advance',
     'employee_advance'=>'EmployeeAdvance',
+    //salary============================================================================================
+    'employee'=>'Employee',
+    'salary_date'=>'Salary Date',
+    'basic_salary'=>'Basic Salary',
+    'deduction'=>'Deduction',
+    'tax_deduction'=>'Tax Deduction',
+    'net_salary'=>'Net Salary',
+    'bank_account_number'=>'Bank Account Number',
+    'payment_mode'=>'Payment Mode',
+    'salary_payment_mode'=>'Salary Payment Mode',
+    'action'=>'Action',
+    'salary'=>'Salary',
+    'manage_salary'=>'Manage Salary',
+    'all_salaries'=>'All Salary Record',
+    'edit_existing_salary'=>'Edit Salary',
+    'please_select'=>'Please Select',
+
+    //attendance==============================================================================================
+    'employee_name'=>'Employee Name',
+    'year'=>'Year',
+    'month'=>'Month',
+    'attendance_details'=>'Attendance Details',
+    'action'=>'Action',
+    'manage_attendance'=>'Manage Attendance',
+    'attendance'=>'Attendance',
+
+    //employeeAdvance===============================================================================
+    
+    'id'=>'ID',
+    'user_name'=>'User Name',
+    'advance_date'=>'Advance Date',
+    'balance'=>'Balance',
+    'refund'=>'Refund',
+    'refund_date'=>'Refund Date',
+    'refund_amount'=>'Refund Amount',
+    
+//==============================BALANCE===============================================
+'add_balance'=>'All Balance',
+'date'=>'Date',
+'business_location'=>'Business Location',
+'raw_materials'=>'Raw Material',
+'quantity'=>'Quantity',
+'current_amount'=>'Current Amount',
+'total_quantity'=>'Total Quantity',
+'temperature'=>'Temprature',
+'quantity'=>'Quantity',
+''=>'',
+''=>'',
+
+
+
+
+
+
     'production_delete_success' => 'Production Unit Delete Successfully',
     'edit_production_unit' => 'Edit Production Unit',
     'show_time_with_date' => 'Show time with date',

@@ -9,27 +9,45 @@ class Attendance extends Model
 {
     use HasFactory;
 
-    // Define the table if it's different from the default naming convention
-    protected $table = 'attendance';  // Name of the table in the database
+    // Specify the table name (if it differs from the plural form of the model)
+    protected $table = 'attendances';
 
-    // Define the fillable columns for mass assignment
+    // Define the primary key (optional, as it's the default 'id')
+    protected $primaryKey = 'id';
+
+    // Specify the fields that can be mass-assigned
     protected $fillable = [
-        'employee_id',
-        'employee_name',
-        'date',
-        'check_in_time',
-        'check_out_time',
-        'leave_type',
-        'total_hours_worked',
-        'overtime_hours'
+        'user_id', 
+        'select_year', 
+        'select_month', 
+        'day', 
+        'status',
     ];
 
-    // If you want to use timestamps (created_at, updated_at), you can leave this as true.
+    // The "timestamps" field is true by default, so we don't need to define it unless we're changing it
     public $timestamps = true;
 
-    // Optionally, if you want to define a relationship with Employee, add this method:
-    // public function employee()
-    // {
-    //     return $this->belongsTo(Employee::class);
-    // }
+    /**
+     * Define a relationship: Attendance belongs to an Employee
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    /**
+     * Define a relationship: Attendance can have multiple records for the same employee and month
+     */
+    public function attendanceDetails()
+    {
+        return $this->hasMany(Attendance::class, 'user_id')
+                    ->where('select_year', $this->select_year)
+                    ->where('select_month', $this->select_month);
+    }
+
+    public function getStatusAttribute($value)
+    {
+        // Normalize the status to lowercase
+        return strtolower(trim($value));
+    }
 }

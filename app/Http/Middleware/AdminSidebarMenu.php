@@ -361,80 +361,60 @@ class AdminSidebarMenu
                     </svg>', 'active' => request()->is('production*')]
                 )->order(25);
             }
+      // In sidebar.blade.php
+$menu->dropdown(
+    __('lang_v1.hrms'),
+    function ($sub) {
 
+        // Employee Subsection
+        if (auth()->user()->can('employee.view')) {
+            $sub->url(
+                action([\App\Http\Controllers\EmployeeController::class, 'index']),
+                __('lang_v1.employee'),
+                ['icon' => '', 'active' => request()->is('hrms/employee*')]
+            );
+        }
 
-            //hrms...............................
+        // Employee Advance Subsection
+        if (auth()->user()->can('employee.view')) {
+            $sub->url(
+                action([\App\Http\Controllers\EmployeeAdvanceController::class, 'index']),
+                __('lang_v1.employee_advance'),
+                ['icon' => '', 'active' => request()->is('hrms/employee-advance*')]
+            );
+        }
 
-            if (auth()->user()->can('hrms.view') || auth()->user()->can('hrms.create') || 
-                auth()->user()->can('employee.view') || auth()->user()->can('employee.create') || 
-                auth()->user()->can('salary.view') || auth()->user()->can('attendance.view')) {
-                $menu->dropdown(
-                    __('lang_v1.hrms'),
-                    function ($sub) {
+        // Salary Subsection
+        if (auth()->user()->can('salary.view')) {
+            $sub->url(
+                action([\App\Http\Controllers\SalaryController::class, 'index']),
+                __('lang_v1.salary'),
+                ['icon' => '', 'active' => request()->is('hrms/salaries*')]
+            );
+        }
 
+        // Attendance Subsection (New Addition)
+        if (auth()->user()->can('attendance.view')) {
+            $sub->url(
+                action([\App\Http\Controllers\AttendanceController::class, 'index']),
+                __('lang_v1.attendance'),
+                ['icon' => '', 'active' => request()->is('hrms/attendance*')]
+            );
+        }
 
-                    // Employee Subsection
-                    if (auth()->user()->can('employee.view')) 
-                    {
-                        $sub->url(
-                            action([\App\Http\Controllers\EmployeeController::class, 'index']),
-                            __('lang_v1.employee'),
-                            ['icon' => '', 'active' => request()->is('hrms/employee*')]
-                        );
-                    }
+    },
+    ['icon' => '<svg aria-hidden="true" class="tw-size-5 tw-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"></path>
+                <rect x="9" y="3" width="6" height="4" rx="2"></rect>
+                <path d="M9 12l.01 0"></path>
+                <path d="M13 12l2 0"></path>
+                <path d="M9 16l.01 0"></path>
+                <path d="M13 16l2 0"></path>
+            </svg>', 'active' => request()->is('hrms*')]
+)->order(26); // Adjust the order number as needed
 
-
-                    //  Employee Advance Subsection
-                    if (auth()->user()->can('employee.view')) {
-                            $sub->url(
-                                    action([\App\Http\Controllers\EmployeeAdvanceController::class, 'index']),
-                                    __('lang_v1.employee_advance'),
-                                    ['icon' => '', 'active' => request()->is('hrms/employee-advance*')]
-                                );
-                        }
-
-                        // salary sub section ===================================================
-
-                        if (auth()->user()->can('salary.view')) {
-                            $sub->url(
-                                    action([\App\Http\Controllers\SalaryController::class, 'index']),
-                                    __('lang_v1.salary'),
-                                    ['icon' => '', 'active' => request()->is('hrms/salaries*')]
-                                );
-                        }
-                        //attendance=====================================================================
-
-                        if (auth()->user()->can('attendance.view')) {
-                            $sub->url(
-                                action([\App\Http\Controllers\AttendanceController::class, 'index']),
-                                __('lang_v1.attendance'),
-                                ['icon' => '', 'active' => request()->is('hrms/attendance*')]
-                            );
-                        }
-                    
-
-                    //     if (auth()->user()->can('salary.view') || auth()->user()->can('salary.create'))
-                    //     <li class="nav-item">
-                    //         <a href="{{ route('salaries.index') }}" class="nav-link {{ request()->is('hrms/salaries*') ? 'active' : '' }}">
-                    //             <i class="nav-icon fas fa-money-bill-wave"></i>
-                    //             <p>{{ __('lang_v1.salary') }}</p>
-                    //         </a>
-                    //     </li>
-                    // endif    
-                },
-
-                    ['icon' => '<svg aria-hidden="true" class="tw-size-5 tw-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                        <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"></path>
-                        <rect x="9" y="3" width="6" height="4" rx="2"></rect>
-                        <path d="M9 12l.01 0"></path>
-                        <path d="M13 12l2 0"></path>
-                        <path d="M9 16l.01 0"></path>
-                        <path d="M13 16l2 0"></path>
-                    </svg>', 'active' => request()->is('hrms*')]
-                )->order(26); // Adjust the order number as needed
-            }
-
+        
 
 
             //Sell dropdown
@@ -944,7 +924,7 @@ class AdminSidebarMenu
                   </svg>', 'active' => request()->segment(1) == 'notification-templates'])->order(80);
             }
 
-            //Settings Dropdown
+            //Settings Dropdown==================================================================================================
             if (auth()->user()->can('business_settings.access') ||
                 auth()->user()->can('barcode_settings.access') ||
                 auth()->user()->can('invoice_settings.access') ||
@@ -1019,6 +999,16 @@ class AdminSidebarMenu
                                 ['icon' => '', 'active' => request()->segment(1) == 'types-of-service']
                             );
                         }
+
+
+                        if (auth()->user()->can('balance.settings.access')) {  // Check for the permission 'balance.settings.access'
+                            $sub->url(
+                                action([\App\Http\Controllers\BalanceController::class, 'index']),
+                                __('Blance'), // The name of the section in the menu
+                                ['icon' => '', 'active' => request()->segment(1) == 'balance'] // Adjust 'balance' based on the segment for the URL
+                            );
+                        }
+                
                     },
                     ['icon' => '<svg aria-hidden="true" class="tw-size-5 tw-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>

@@ -1,84 +1,96 @@
 @extends('layouts.app')
+@section('title', __('lang_v1.add_user'))
 
 @section('content')
-<div class="container">
+<!-- Content Header (Page header) -->
+<section class="content-header">
+    <h1>@lang('lang_v1.add_user')</h1>
+</section>
+
+<!-- Main content -->
+<section class="content">
+    {!! Form::open(['route' => 'users.store', 'method' => 'POST', 'id' => 'user_add_form', 'enctype' => 'multipart/form-data']) !!}
     <div class="row">
-        <div class="col-lg-12 margin-tb">
-            <div class="pull-left">
-                <h2>Add New Employee</h2>
-            </div>
-            <div class="pull-right">
-                <a class="btn btn-primary" href="{{ route('employees.index') }}"> Back</a>
-            </div>
+        <div class="col-md-12">
+            @component('components.widget', ['class' => 'box-primary'])
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('surname', __('messages.surname') . ':*') !!}
+                            {!! Form::text('surname', old('surname'), ['class' => 'form-control', 'required', 'placeholder' => __('messages.enter_surname')]) !!}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('first_name', __('messages.first_name') . ':*') !!}
+                            {!! Form::text('first_name', old('first_name'), ['class' => 'form-control', 'required', 'placeholder' => __('messages.enter_first_name')]) !!}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('last_name', __('messages.last_name') . ':*') !!}
+                            {!! Form::text('last_name', old('last_name'), ['class' => 'form-control', 'required', 'placeholder' => __('messages.enter_last_name')]) !!}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('email', __('messages.email') . ':*') !!}
+                            {!! Form::email('email', old('email'), ['class' => 'form-control', 'required', 'placeholder' => __('messages.enter_email')]) !!}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('phone', __('messages.phone') . ':*') !!}
+                            {!! Form::text('phone', old('phone'), ['class' => 'form-control', 'required', 'placeholder' => __('messages.enter_phone')]) !!}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('gender', __('messages.gender') . ':*') !!}
+                            {!! Form::select('gender', ['' => __('messages.select_gender'), 'Male' => __('messages.male'), 'Female' => __('messages.female'), 'Other' => __('messages.other')], old('gender'), ['class' => 'form-control select2', 'required']) !!}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('address', __('messages.address') . ':*') !!}
+                            {!! Form::textarea('address', old('address'), ['class' => 'form-control', 'required', 'placeholder' => __('messages.enter_address')]) !!}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('file_url', __('messages.attach_file') . ':') !!}
+                            {!! Form::file('file_url', ['class' => 'form-control']) !!}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-primary pull-right">@lang('messages.save')</button>
+                    </div>
+                </div>
+            @endcomponent
         </div>
     </div>
-   
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            <strong>Whoops!</strong> There were some problems with your input.<br><br>
-            <ul>
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-   
-    <form action="{{ route('employees.store') }}" method="POST" enctype="multipart/form-data">
-        @csrf
-        
-        <div class="row">
-            <div class="col-xs-12 col-sm-12 col-md-12">
-                <div class="form-group">
-                    <strong>Name:</strong>
-                    <input type="text" name="name" class="form-control" placeholder="Enter Name" value="{{ old('name') }}">
-                </div>
-            </div>
-            <div class="col-xs-12 col-sm-12 col-md-12">
-                <div class="form-group">
-                    <strong>Age:</strong>
-                    <input type="number" name="age" class="form-control" placeholder="Enter Age" value="{{ old('age') }}">
-                </div>
-            </div>
-            <div class="col-xs-12 col-sm-12 col-md-12">
-                <div class="form-group">
-                    <strong>ID Prove:</strong>
-                    <input type="text" name="idprove" class="form-control" placeholder="Enter ID Prove" value="{{ old('idprove') }}">
-                </div>
-            </div>
-            <div class="col-xs-12 col-sm-12 col-md-12">
-                <div class="form-group">
-                    <strong>Phone:</strong>
-                    <input type="text" name="phone" class="form-control" placeholder="Enter Phone" value="{{ old('phone') }}">
-                </div>
-            </div>
-            <div class="col-xs-12 col-sm-12 col-md-12">
-                <div class="form-group">
-                    <strong>Gender:</strong>
-                    <select name="gender" class="form-control">
-                        <option value="">Select Gender</option>
-                        <option value="Male" {{ old('gender') == 'Male' ? 'selected' : '' }}>Male</option>
-                        <option value="Female" {{ old('gender') == 'Female' ? 'selected' : '' }}>Female</option>
-                        <option value="Other" {{ old('gender') == 'Other' ? 'selected' : '' }}>Other</option>
-                    </select>
-                </div>
-            </div>
-            <div class="col-xs-12 col-sm-12 col-md-12">
-                <div class="form-group">
-                    <strong>Address:</strong>
-                    <textarea class="form-control" name="address" placeholder="Enter Address">{{ old('address') }}</textarea>
-                </div>
-            </div>
-            <div class="col-xs-12 col-sm-12 col-md-12">
-                <div class="form-group">
-                    <strong>Attach File:</strong>
-                    <input type="file" name="file_url" class="form-control">
-                </div>
-            </div>
-            <div class="col-xs-12 col-sm-12 col-md-12 text-center">
-                <button type="submit" class="btn btn-primary">Submit</button>
-            </div>
-        </div>
-    </form>
-</div>
+    {!! Form::close() !!}
+</section>
+@endsection
+
+@section('javascript')
+<script>
+$(document).ready(function() {
+    // Initialize Select2 for gender select
+    $('.select2').select2({
+        width: '100%'
+    });
+
+    // Optional: You can add more JS functionalities here
+});
+</script>
 @endsection

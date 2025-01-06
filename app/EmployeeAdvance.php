@@ -6,22 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 
 class EmployeeAdvance extends Model
 {
-    // Specify the table name if it's different from the default plural form
     protected $table = 'employee_advance';
-
-    // Fillable fields for mass assignment
+    
     protected $fillable = [
-        'empid',  // Note: using empid instead of employee_id based on your table schema
-        'date', 
-        'refund', 
-        'refund_date', 
-        'refund_amount', 
-        'balance'
+        // 'empid',
+        'date',
+        'refund',
+        'refund_date',
+        'refund_amount',
+        'balance',
+        'user_id'
     ];
 
-    // Define the relationship with Employee model
-    public function employee()
+    // Define relationship with User model
+    public function user()
     {
-        return $this->belongsTo(Employee::class, 'empid');
+        return $this->belongsTo(User::class, 'user_id'); // Adjust if your foreign key is different
     }
 }

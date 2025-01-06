@@ -63,8 +63,9 @@ use App\Http\Controllers\VariationTemplateController;
 use App\Http\Controllers\WarrantyController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeAdvanceController;
-use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\SalaryController;
+use App\Http\Controllers\BalanceController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -141,7 +142,17 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         Route::delete('temperature/{temperature}', 'destroy')->name('temperature.destroy');
     });
 
+   // routes/web.php//attendance================================================
+
+
+   Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+   Route::get('attendance/create', [AttendanceController::class, 'create'])->name('attendance.create');
+   Route::post('attendance', [AttendanceController::class, 'store'])->name('attendance.store');
+   Route::get('attendance/{attendance}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
+   Route::put('attendance/{attendance}', [AttendanceController::class, 'update'])->name('attendance.update');
+   Route::delete('attendance/{attendance}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
    
+ 
 
 
 
@@ -180,6 +191,8 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
             Route::put('employee-advances/{employeeAdvance}', [EmployeeAdvanceController::class, 'update'])->name('employee_advance.update');
             Route::delete('employee-advances/{employeeAdvance}', [EmployeeAdvanceController::class, 'destroy'])->name('employee_advance.destroy');
             Route::post('employee-advances/balance', [EmployeeAdvanceController::class, 'getEmployeeBalance'])->name('employee_advance.balance');
+            Route::get('/employees/autocomplete', [EmployeeController::class, 'autocomplete'])
+    ->name('employees.autocomplete');
         });
         
 
@@ -214,31 +227,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         
         //attendance+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-        Route::resource('attendance', AttendanceController::class);
-        
-        // Custom route for DataTable data (GET request)
-        Route::get('attendance/data', [AttendanceController::class, 'getData'])->name('attendance.data');
-        
-        // Below are the routes that correspond to specific methods
-        
-        // Route for the index method (GET)
-        Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
-        
-        // Route for the create method (GET)
-        Route::get('attendance/create', [AttendanceController::class, 'create'])->name('attendance.create');
-        
-        // Route for the store method (POST)
-        Route::post('attendance', [AttendanceController::class, 'store'])->name('attendance.store');
-        
-        // Route for the edit method (GET)
-        Route::get('attendance/{attendance}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
-        
-        // Route for the update method (PUT/PATCH)
-        Route::put('attendance/{attendance}', [AttendanceController::class, 'update'])->name('attendance.update');
-        Route::patch('attendance/{attendance}', [AttendanceController::class, 'update']);  // For PATCH requests
-        
-        // Route for the destroy method (DELETE)
-        Route::delete('attendance/{attendance}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
+       
         
         
     
@@ -464,7 +453,37 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     //Expense Categories...
     Route::resource('expense-categories', ExpenseCategoryController::class);
 
-    //Expenses...
+
+    //Balance====================================================================================================
+
+   // Balance Routes
+    Route::middleware(['auth'])->group(function () {
+
+    // Display a list of balances
+    Route::get('balance', [BalanceController::class, 'index'])->name('balance.index');
+
+    // Show the form for creating a new balance
+    Route::get('balance/create', [BalanceController::class, 'create'])->name('balance.create');
+
+    // Store a newly created balance
+    Route::post('balance', [BalanceController::class, 'store'])->name('balance.store');
+
+    // Show the form for editing the specified balance
+    Route::get('balance/{id}/edit', [BalanceController::class, 'edit'])->name('balance.edit');
+
+    // Update the specified balance
+    Route::put('balance/{id}', [BalanceController::class, 'update'])->name('balance.update');
+    
+
+    // Delete the specified balance
+    Route::delete('balance/{id}', [BalanceController::class, 'destroy'])->name('balance.destroy');
+
+    Route::get('/products/get-stock/{id}', [BalanceController::class, 'getProductStock'])->name('products.get-stock');
+
+});
+
+
+    //nses...
     Route::resource('expenses', ExpenseController::class);
 
     //Transaction payments...

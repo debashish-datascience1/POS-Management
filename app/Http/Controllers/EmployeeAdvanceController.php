@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Employee;
+use App\User;  // Use User model instead of Employee model
 use App\EmployeeAdvance;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class EmployeeAdvanceController extends Controller
 {
@@ -18,18 +19,31 @@ class EmployeeAdvanceController extends Controller
     }
 
     // Show all employee advances
-    public function index()
-    {
-        abort_unless(auth()->user()->can('employee.view'), 403);
+    public function index(Request $request)
+{
+    // Get all employee advances with user data (first_name, last_name)
+    $employeeAdvances = EmployeeAdvance::with('user')->get();
 
-        $employeeAdvances = EmployeeAdvance::with('employee')->get(); // Get all advances with employee data
-        return view('employee_advance.index', compact('employeeAdvances'));
+    if ($request->ajax()) {
+        return datatables()->of($employeeAdvances)
+            ->addColumn('user_name', function($row) {
+                // Combine first_name and last_name to create full name
+                return $row->user ? $row->user->first_name . ' ' . $row->user->last_name : 'N/A';
+            })
+            ->make(true);
     }
+
+    return view('employee_advance.index', compact('employeeAdvances'));
+}
+
+    
 
     // Show form to create a new employee advance
     public function create()
     {
-        $employees = Employee::all(); // Get all employees for dropdown
+        // Use User model instead of Employee model
+        $employees = User::select('id', DB::raw("CONCAT(COALESCE(surname, ''),' ',COALESCE(first_name, ''),' ',COALESCE(last_name,'')) as full_name"), 'username')->get();
+        
         return view('employee_advance.create', compact('employees'));
     }
 
@@ -37,7 +51,7 @@ class EmployeeAdvanceController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'empid' => 'required|exists:employees,id',  // Ensure employee exists
+            'user_id' => 'required|exists:users,id',  // Ensure employee exists (use User model)
             'date' => 'required|date',
             'refund' => 'nullable|string',
             'refund_date' => 'nullable|date',
@@ -55,7 +69,9 @@ class EmployeeAdvanceController extends Controller
     // Show the form to edit an existing advance
     public function edit(EmployeeAdvance $employeeAdvance)
     {
-        $employees = Employee::all(); // Get all employees for dropdown
+        // Use User model instead of Employee model
+        $employees = User::select('id', DB::raw("CONCAT(COALESCE(surname, ''),' ',COALESCE(first_name, ''),' ',COALESCE(last_name,'')) as full_name"), 'username')->get();
+        
         return view('employee_advance.edit', compact('employeeAdvance', 'employees'));
     }
 
@@ -63,7 +79,7 @@ class EmployeeAdvanceController extends Controller
     public function update(Request $request, EmployeeAdvance $employeeAdvance)
     {
         $request->validate([
-            'empid' => 'required|exists:employees,id',
+            'user_id' => 'required|exists:users,id', // Validate with User model
             'date' => 'required|date',
             'refund' => 'nullable|string',
             'refund_date' => 'nullable|date',
@@ -89,27 +105,24 @@ class EmployeeAdvanceController extends Controller
     {
         $request->validate([
             'employee_name' => 'required|string',
-            'employee_id' => 'required|integer|exists:employees,id',
+            'employee_id' => 'required|integer|exists:users,id',  // Validate against User model
             'date' => 'required|date',
         ]);
 
-        $employeeBalance = EmployeeAdvance::join('employees', 'employee_advance.empid', '=', 'employees.id')
+        $employeeBalance = EmployeeAdvance::join('users', 'employee_advance.user_id', '=', 'users.id')
             ->select(
-                'employees.id as employee_id',
-                'employees.name',
-                'employees.age',
-                'employees.salary',
-                'employees.gender',
-                'employees.address',
-                'employees.phone',
+                'users.id as employee_id',
+                'users.first_name',  // Replace 'name' with 'first_name' (from User model)
+                'users.last_name',
+                'users.username',
                 'employee_advance.date as advance_date',
                 'employee_advance.refund',
                 'employee_advance.refund_date',
                 'employee_advance.refund_amount',
                 'employee_advance.balance'
             )
-            ->where('employees.name', $request->employee_name)
-            ->where('employees.id', $request->employee_id)
+            ->where('users.first_name', $request->employee_name)  // Search based on user's first name
+            ->where('users.id', $request->employee_id)
             ->where('employee_advance.date', '<=', $request->date)
             ->orderBy('employee_advance.date', 'DESC')
             ->first();

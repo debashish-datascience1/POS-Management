@@ -64,4 +64,6 @@ class Packing extends Model
     {
         return json_decode($value, true) ?? [];
     }
+
 }
+

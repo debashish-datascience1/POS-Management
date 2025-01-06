@@ -112,9 +112,7 @@ class PackingController extends Controller
                     'packet', 
                     'grand_total', 
                     'created_at'
-                ])->get();
-
-                // dd( $packings);
+                ]);
 
             return DataTables::of($packings)
                 ->addColumn('action', function ($row) {
@@ -183,51 +181,17 @@ class PackingController extends Controller
                     }
                 })
                 ->editColumn('jar', function ($row) {
-                    try {
-                        $jars = is_string($row->jar) ? json_decode($row->jar, true) : $row->jar;
-                        
-                        if (!is_array($jars)) {
-                            return '0.00';
-                        }
-                        
-                        return implode('<br>', array_map(function ($jar) {
-                            // Each jar should have 'size' and 'quantity' properties
-                            if (isset($jar['size']) && isset($jar['quantity'])) {
-                                return $jar['size'] . ': ' . number_format((float)$jar['quantity'], 2);
-                            }
-                            return '0.00';
-                        }, $jars));
-                    } catch (\Exception $e) {
-                        return '0.00';
-                    }
+                    return $this->formatPackingData($row->jar);
                 })
                 ->editColumn('packet', function ($row) {
-                    try {
-                        $packets = is_string($row->packet) ? json_decode($row->packet, true) : $row->packet;
-                        
-                        if (!is_array($packets)) {
-                            return '0.00';
-                        }
-                        
-                        return implode('<br>', array_map(function ($packet) {
-                            // Each packet should have 'size' and 'quantity' properties
-                            if (isset($packet['size']) && isset($packet['quantity'])) {
-                                return $packet['size'] . ': ' . number_format((float)$packet['quantity'], 2);
-                            }
-                            return '0.00';
-                        }, $packets));
-                    } catch (\Exception $e) {
-                        return '0.00';
-                    }
+                    return $this->formatPackingData($row->packet);
                 })
                 ->editColumn('grand_total', function ($row) {
                     return is_numeric($row->grand_total) ?
                         number_format((float)$row->grand_total, 2) : '0.00';
                 })
-                ->editColumn('date', function ($row) {
-                    return date('d-m-Y', strtotime($row->date));
-                })
-                
+                ->editColumn('date', '{{@format_date($date)}}')
+                ->editColumn('created_at', '{{@format_datetime($created_at)}}')
                 ->rawColumns([
                     'action', 
                     'temperature', 
@@ -595,8 +559,8 @@ class PackingController extends Controller
             $input = $request->validate([
                 'date' => 'required|date',
                 'location_id' => 'required|exists:business_locations,id',
-                // 'temperatures' => 'required|array',
-                // 'temperatures.*' => 'required|string',
+                'temperatures' => 'required|array',
+                'temperatures.*' => 'required|string',
                 'quantities' => 'required|array',
                 'quantities.*' => 'required|numeric|min:0',
                 'mix' => 'required|array',
@@ -735,54 +699,32 @@ class PackingController extends Controller
         return redirect()->action([\App\Http\Controllers\PackingController::class, 'index'])->with('status', $output);
     }
 
-      public function destroy($id)
+    public function destroy($id)
     {
         if (!auth()->user()->can('packing.delete')) {
             abort(403, 'Unauthorized action.');
         }
 
         try {
+            $business_id = request()->session()->get('user.business_id');
+            $packing = Packing::where('business_id', $business_id)->findOrFail($id);
+
             DB::beginTransaction();
 
-            $business_id = request()->session()->get('user.business_id');
-            
-            // Find the packing record with additional validation
-            $packing = Packing::where('business_id', $business_id)
-                ->where('id', $id)
-                ->first();
-                
-            if (!$packing) {
-                return response()->json([
-                    'success' => false,
-                    'msg' => __('messages.not_found')
-                ], 404);
-            }
-
             // Get the temperatures and quantities from the JSON stored in the packing record
-            $temperatures = json_decode($packing->temperature, true) ?? [];
-            $quantities = json_decode($packing->quantity, true) ?? [];
-
-            // Validate the arrays have matching lengths
-            if (count($temperatures) !== count($quantities)) {
-                throw new Exception('Data integrity error: Mismatched temperature and quantity records');
-            }
+            $temperatures = json_decode($packing->temperature, true);
+            $quantities = json_decode($packing->quantity, true);
 
             // Restore the temperature quantities
-            foreach ($temperatures as $index => $temp) {
-                $temperature = Temperature::where('temperature', $temp)->first();
+            for ($i = 0; $i < count($temperatures); $i++) {
+                $temperature = Temperature::where('temperature', $temperatures[$i])->first();
                 
                 if (!$temperature) {
-                    throw new Exception("Temperature record {$temp} not found");
-                }
-
-                // Validate quantity before adding back
-                $quantity = $quantities[$index];
-                if (!is_numeric($quantity) || $quantity < 0) {
-                    throw new Exception("Invalid quantity value for temperature {$temp}");
+                    throw new Exception("Temperature {$temperatures[$i]} not found");
                 }
 
                 // Add back the quantity that was used
-                $temperature->temp_quantity = $temperature->temp_quantity + floatval($quantity);
+                $temperature->temp_quantity += $quantities[$i];
                 $temperature->save();
             }
 
@@ -791,22 +733,20 @@ class PackingController extends Controller
 
             DB::commit();
 
-            return response()->json([
+            $output = [
                 'success' => true,
                 'msg' => __('lang_v1.packing_deleted_successfully')
-            ]);
-
+            ];
         } catch (\Exception $e) {
             DB::rollBack();
-            
-            \Log::emergency("File:" . $e->getFile(). 
-                "Line:" . $e->getLine(). 
-                "Message:" . $e->getMessage());
+            \Log::emergency("File:" . $e->getFile() . "Line:" . $e->getLine() . "Message:" . $e->getMessage());
 
-            return response()->json([
+            $output = [
                 'success' => false,
                 'msg' => __('messages.something_went_wrong')
-            ], 500);
+            ];
         }
+
+        return $output;
     }
 }

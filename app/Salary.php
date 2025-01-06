@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Salary extends Model
 {
     protected $fillable = [
-        'employee_id', 
+        'user_id', // Keep this as is, it will now reference users table
         'salary_date', 
         'basic_salary', 
         'deduction', 
@@ -18,9 +18,9 @@ class Salary extends Model
         'salary_payment_mode'
     ];
 
-    // Define the relationship with Employee
-    public function employee()
+    // Relationship with User model
+    public function user()
     {
-        return $this->belongsTo(Employee::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

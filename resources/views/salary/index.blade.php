@@ -35,7 +35,7 @@
                 <tbody>
                     @foreach ($salaries as $salary)
                     <tr>
-                        <td>{{ $salary->employee->name }}</td>
+                        <td>{{ $salary->first_name }} {{ $salary->last_name }}</td>
                         <td>{{ Carbon\Carbon::parse($salary->salary_date)->format('d-m-Y') }}</td>
                         <td>{{ $salary->basic_salary }}</td>
                         <td>{{ $salary->deduction }}</td>

@@ -44,7 +44,7 @@
                                 <div class="col-sm-3">
                                     <div class="form-group">
                                         {!! Form::label('temperatures[]', __('lang_v1.temperature') . ':*') !!}
-                                        <select name="temperatures[]" class="form-control temperature-select" required>
+                                        <select name="temperatures[]" class="form-control temperature-select">
                                             <option value="">@lang('messages.please_select')</option>
                                             @foreach ($temperatures as $key => $value)
                                                 <option value="{{ $key }}">{{ $value }}</option>
@@ -107,7 +107,8 @@
                                         <div class="packet-container">
                                             <!-- Dynamic packet options will be added here -->
                                         </div>
-                                        <button type="button" class="btn btn-primary btn-sm mt-2 add-packet">Add Packet</button>
+                                        <button type="button" class="btn btn-primary btn-sm mt-2 add-packet">Add
+                                            Packet</button>
                                     </div>
                                 </div>
                             </div>
@@ -167,9 +168,9 @@
             }
 
             function addOption(type, $container, sectionIndex) {
-    const options = type === 'jar' ? jarOptions : packetOptions;
-    const optionIndex = $container.find(`.${type}-option`).length;
-    const html = `
+                const options = type === 'jar' ? jarOptions : packetOptions;
+                const optionIndex = $container.find(`.${type}-option`).length;
+                const html = `
     <div class="${type}-option mb-2">
         <div class="row">
             <div class="col-sm-4">  
@@ -206,9 +207,9 @@
         </div>
     </div>
     `;
-    $container.append(html);
-    calculateGrandTotal();
-}
+                $container.append(html);
+                calculateGrandTotal();
+            }
 
             function calculateTotal($row) {
                 const quantity = parseFloat($row.find('.quantity-input').val()) || 0;
@@ -249,7 +250,8 @@
 
                 $newSection.find('input').val('');
                 $newSection.find('.select2-container').remove();
-                $newSection.find('.temperature-select, .product-temperature-select').removeClass('select2-hidden-accessible').val('');
+                $newSection.find('.temperature-select, .product-temperature-select').removeClass(
+                    'select2-hidden-accessible').val('');
 
                 const $jarContainer = $newSection.find('.jar-container').empty();
                 const $packetContainer = $newSection.find('.packet-container').empty();
@@ -278,7 +280,7 @@
             });
 
             // Add jar/packet
-            
+
             $(document).on('click', '.add-jar', function() {
                 const sectionIndex = $(this).closest('.packing-row').index();
                 addOption('jar', $(this).siblings('.jar-container'), sectionIndex);

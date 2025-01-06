@@ -3,107 +3,221 @@
 namespace App\Http\Controllers;
 
 use App\Attendance;
-use App\Employee;
+use App\User;
 use Illuminate\Http\Request;
-use Yajra\DataTables\DataTables;
+use DateTime; // If you want to use PHP's built-in DateTime
+
 
 class AttendanceController extends Controller
 {
-    // Show all attendances
+
     public function index()
-    {
-        return view('attendance.index');
-    }
+{
+    $attendances = Attendance::with('user')  // Changed from 'employee' to 'user'
+        ->orderBy('select_year', 'desc')
+        ->orderBy('select_month', 'desc')
+        ->orderBy('user_id')
+        ->orderBy('day', 'asc')
+        ->get()
+        ->groupBy(['select_year', 'select_month', 'user_id']);
 
-    // Fetch data for DataTable
-    public function getData()
-    {
-        $attendances = Attendance::with('employee')->get(); // Include employee details
-
-        return DataTables::of($attendances)
-            ->addColumn('action', function ($attendance) {
-                return '<a href="' . route('attendance.edit', $attendance->id) . '" class="btn btn-xs btn-primary">Edit</a>
-                        <a href="#" data-href="' . route('attendance.destroy', $attendance->id) . '" class="btn btn-xs btn-danger delete-attendance">Delete</a>';
-            })
-            ->make(true);
-    }
-
-    // Show create form
+    return view('attendance.index', compact('attendances'));
+}
     public function create()
     {
-        $employees = Employee::all();
+        $employees = User::all();
+        // dd($employees);
         return view('attendance.create', compact('employees'));
     }
 
-    // Store new attendance
     public function store(Request $request)
     {
-        $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'date' => 'required|date',
-            'check_in_time' => 'required|date_format:H:i',
-            'check_out_time' => 'required|date_format:H:i',
-            'leave_type' => 'nullable|string',
-            'total_hours_worked' => 'required|numeric',
-            'overtime_hours' => 'nullable|numeric',
+        // Validate the input
+        $validatedData = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'select_year' => 'required|integer|min:2000|max:' . date('Y'),
+            'select_month' => 'required|integer|between:1,12',
+            'status' => 'array', 
         ]);
-
-        $attendance = new Attendance();
-        $attendance->employee_id = $request->employee_id;
-        $attendance->date = $request->date;
-        $attendance->check_in_time = $request->check_in_time;
-        $attendance->check_out_time = $request->check_out_time;
-        $attendance->leave_type = $request->leave_type;
-        $attendance->total_hours_worked = $request->total_hours_worked;
-        $attendance->overtime_hours = $request->overtime_hours;
-        $attendance->save();
- 
-
-        return redirect()->route('attendance.index')->with('success', 'Attendance added successfully!');
-        dd($request::all());
+    
+        // Get the days in the selected month
+        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $validatedData['select_month'], $validatedData['select_year']);
+    
+        // Prepare attendance records
+        $attendanceRecords = [];
         
+        if (isset($request->status) && is_array($request->status)) {
+            foreach ($request->status as $day => $status) {
+                // Normalize the status (convert to lowercase)
+                $status = strtolower(trim($status));
+    
+                // Check if the day is a weekend
+                $currentDate = new DateTime("{$validatedData['select_year']}-{$validatedData['select_month']}-{$day}");
+                $isWeekend = in_array($currentDate->format('w'), ['0', '6']);
+    
+                // If the day is a weekend, force the status to 'weekend'
+                if ($isWeekend) {
+                    $status = 'weekend';
+                }
+    
+                // Prepare the attendance record for this day
+                $attendanceRecords[] = [
+                    'user_id' => $validatedData['user_id'],
+                    'select_year' => $validatedData['select_year'],
+                    'select_month' => $validatedData['select_month'],
+                    'day' => $day,
+                    'status' => $status,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+    
+            // First, check if attendance for this employee and month/year already exists
+            Attendance::where([
+                'user_id' => $validatedData['user_id'],
+                'select_year' => $validatedData['select_year'],
+                'select_month' => $validatedData['select_month']
+            ])->delete();
+    
+            // Bulk insert the attendance records
+            $newAttendances = Attendance::insert($attendanceRecords);
+    
+            // If AJAX request, return the new records in JSON
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'msg' => 'Attendance recorded successfully.',
+                    'attendances' => $attendanceRecords, // You could return a newly inserted record here
+                ]);
+            }
+    
+            return redirect()->route('attendance.index')
+                ->with('success', 'Attendance recorded successfully.');
+        }
+    
+        return back()->with('error', 'No attendance data to save.');
     }
-
-    // Show edit form
+    
+    // Show the form for editing attendance
     public function edit($id)
     {
+        // Get the attendance record you want to edit
         $attendance = Attendance::findOrFail($id);
-        $employees = Employee::all();
-        return view('attendance.edit', compact('attendance', 'employees'));
+    
+        // Get the attendance data for the selected employee, year, and month
+        $attendanceData = Attendance::where('user_id', $attendance->user_id)
+                                    ->where('select_year', $attendance->select_year)
+                                    ->where('select_month', $attendance->select_month)
+                                    ->get();
+    
+        // Get all employees for the select input
+        $employees = User::all(); // Adjust this if you have a specific model for employees
+    
+        // Pass attendance data and employee list to the view
+        return view('attendance.edit', compact('attendance', 'attendanceData', 'employees'));
     }
+    
 
-    // Update attendance
+
+    // Update the attendance data
     public function update(Request $request, $id)
     {
+        // Validate incoming data
         $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'date' => 'required|date',
-            'check_in_time' => 'required|date_format:H:i',
-            'check_out_time' => 'required|date_format:H:i',
-            'leave_type' => 'nullable|string',
-            'total_hours_worked' => 'required|numeric',
-            'overtime_hours' => 'nullable|numeric',
+            'user_id' => 'required|exists:users,id',
+            'select_year' => 'required|integer',
+            'select_month' => 'required|integer',
+            'status' => 'required|array', // Ensure the status is an array
         ]);
 
+        // Find the attendance record to update
         $attendance = Attendance::findOrFail($id);
-        $attendance->employee_id = $request->employee_id;
-        $attendance->date = $request->date;
-        $attendance->check_in_time = $request->check_in_time;
-        $attendance->check_out_time = $request->check_out_time;
-        $attendance->leave_type = $request->leave_type;
-        $attendance->total_hours_worked = $request->total_hours_worked;
-        $attendance->overtime_hours = $request->overtime_hours;
+
+        // Update the attendance record
+        $attendance->user_id = $request->user_id;
+        $attendance->select_year = $request->select_year;
+        $attendance->select_month = $request->select_month;
         $attendance->save();
 
-        return redirect()->route('attendance.index')->with('success', 'Attendance updated successfully!');
+        // Update the attendance status for each day
+        foreach ($request->status as $day => $status) {
+            // Find or create the attendance record for each day
+            Attendance::updateOrCreate(
+                [
+                    'user_id' => $attendance->user_id,
+                    'select_year' => $attendance->select_year,
+                    'select_month' => $attendance->select_month,
+                    'day' => $day,
+                ],
+                ['status' => $status]
+            );
+        }
+
+        // Redirect back with success message
+        return redirect()->route('attendance.index')->with('success', 'Attendance updated successfully.');
     }
 
-    // Delete attendance
-    public function destroy($id)
+
+    public function destroy(Attendance $attendance)
     {
-        $attendance = Attendance::findOrFail($id);
-        $attendance->delete();
-
-        return response()->json(['success' => true, 'msg' => 'Attendance deleted successfully!']);
+        try {
+            // Find all related attendance records
+            $relatedAttendances = Attendance::where([
+                'user_id' => $attendance->user_id,
+                'select_year' => $attendance->select_year,
+                'select_month' => $attendance->select_month
+            ])->get();
+    
+            // Delete all related attendance records
+            foreach ($relatedAttendances as $relatedAttendance) {
+                $relatedAttendance->delete();
+            }
+    
+            // Prepare success message
+            $successMessage = "Attendance for {$attendance->employee->name} in " . 
+                DateTime::createFromFormat('!m', $attendance->select_month)->format('F') . 
+                " {$attendance->select_year} deleted successfully!";
+    
+            return response()->json([
+                'success' => true,
+                'msg' => $successMessage
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'msg' => "Error deleting attendance: " . $e->getMessage()
+            ], 500);
+        }
     }
+    
+
+// Optional: Add a method to handle AJAX delete requests
+public function ajaxDestroy($id)
+{
+    try {
+        $attendance = Attendance::findOrFail($id);
+
+        // Find all related attendance records
+        $relatedAttendances = Attendance::where([
+            'user_id' => $attendance->user_id,
+            'select_year' => $attendance->select_year,
+            'select_month' => $attendance->select_month
+        ])->get();
+
+        // Delete all related attendance records
+        foreach ($relatedAttendances as $relatedAttendance) {
+            $relatedAttendance->delete();
+        }
+
+        return response()->json([
+            'success' => true,
+            'msg' => "Attendance deleted successfully."
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'msg' => "Error deleting attendance: " . $e->getMessage()
+        ], 500);
+    }
+}
 }

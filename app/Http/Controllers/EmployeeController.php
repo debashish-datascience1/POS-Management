@@ -9,6 +9,7 @@ class EmployeeController extends Controller
     public function index()
     {
         $employees = Employee::paginate(10);
+        // dd($employees);
         return view('employees.index', compact('employees'));
     }
 

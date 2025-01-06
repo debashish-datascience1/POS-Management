@@ -1,116 +1,138 @@
 @extends('layouts.app')
-@section('title', __('Add Attendance'))
 
 @section('content')
-<section class="content-header">
-    <h1>@lang('Add Attendance')
-        <small>@lang('lang_v1.add_new_attendance')</small>
-    </h1>
-</section>
-
-<section class="content">
-    {!! Form::open(['url' => route('attendance.store'), 'method' => 'POST', 'id' => 'attendance_form']) !!}
-
-    <div class="box box-solid">
-        <div class="box-body">
-            <div class="row">
-                <!-- Employee Selection -->
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {!! Form::label('employee_id', __('lang_v1.employee')) !!}
-                        {!! Form::select('employee_id', 
-                            $employees->pluck('name', 'id'), // Only showing employee names, using employee ID as value
-                            null, 
-                            ['class' => 'form-control select2', 'placeholder' => __('lang_v1.please_select'), 'required']
-                        ) !!}
-                    </div>
-                </div>
-
-                <!-- Date -->
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {!! Form::label('date', __('lang_v1.date')) !!}
-                        {!! Form::date('date', null, ['class' => 'form-control', 'required']) !!}
-                    </div>
-                </div>
-
-                <!-- Check-in Time -->
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {!! Form::label('check_in_time', __('lang_v1.check_in_time')) !!}
-                        {!! Form::time('check_in_time', null, ['class' => 'form-control', 'required']) !!}
-                    </div>
-                </div>
+<div class="container">
+    <div class="row">
+        <div class="col-lg-12 margin-tb">
+            <div class="pull-left">
+                <h2>Add New Attendance</h2>
             </div>
-
-            <div class="row">
-                <!-- Check-out Time -->
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {!! Form::label('check_out_time', __('lang_v1.check_out_time')) !!}
-                        {!! Form::time('check_out_time', null, ['class' => 'form-control', 'required']) !!}
-                    </div>
-                </div>
-
-                <!-- Leave Type -->
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {!! Form::label('leave_type', __('lang_v1.leave_type')) !!}
-                        {!! Form::text('leave_type', null, ['class' => 'form-control']) !!}
-                    </div>
-                </div>
-
-                <!-- Total Hours Worked -->
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {!! Form::label('total_hours_worked', __('lang_v1.total_hours_worked')) !!}
-                        {!! Form::number('total_hours_worked', null, ['class' => 'form-control', 'step' => '0.01', 'required']) !!}
-                    </div>
-                </div>
+            <div class="pull-right">
+                <a class="btn btn-primary" href="{{ route('attendance.index') }}"> Back</a>
             </div>
-
-            <div class="row">
-                <!-- Overtime Hours -->
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {!! Form::label('overtime_hours', __('lang_v1.overtime_hours')) !!}
-                        {!! Form::number('overtime_hours', null, ['class' => 'form-control', 'step' => '0.01']) !!}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="box-footer">
-            <button type="submit" class="btn btn-primary pull-right">
-                @lang('messages.save')
-            </button>
-            <a href="{{ route('attendance.index') }}" class="btn btn-danger">
-                @lang('messages.cancel')
-            </a>
         </div>
     </div>
+   
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <strong>Whoops!</strong> There were some problems with your input.<br><br>
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+   
+    <form action="{{ route('attendance.store') }}" method="POST">
+        @csrf
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <strong>Employee Name:</strong>
+                    <select name="user_id" id="user_id" class="form-control" required>
+                        <option value="">Select Employee</option>
+                        @foreach($employees as $employee)
+                        <option value="{{ $employee->id }}">{{ $employee->first_name }} {{ $employee->last_name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <strong>Select Year:</strong>
+                    <select name="select_year" id="select_year" class="form-control" required>
+                        <option value="">--Select Year--</option>
+                        @foreach(range(date('Y'), 2000) as $year)
+                            <option value="{{ $year }}">{{ $year }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <strong>Select Month:</strong>
+                    <select name="select_month" id="select_month" class="form-control" required>
+                        <option value="">--Select Month--</option>
+                        @foreach(range(1, 12) as $month)
+                            <option value="{{ $month }}">{{ DateTime::createFromFormat('!m', $month)->format('F') }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-12 text-center">
+                <button type="button" class="btn btn-primary" onclick="showDates()">Filter</button>
+            </div>
+        </div>
 
-    {!! Form::close() !!}
-</section>
-@endsection
+        <div id="datesContainer" class="mt-4"></div>
+        <div class="col-md-12 text-center">
+            <button type="submit" class="btn btn-success mt-3" id="saveAttendance" style="display:none;">Save Attendance</button>
+        </div>
+    </form>
+</div>
 
-@section('javascript')
 <script>
-    $(document).ready(function() {
-        // Form validation
-        $('#attendance_form').validate({
-            rules: {
-                employee_id: 'required',
-                date: 'required',
-                check_in_time: 'required',
-                check_out_time: 'required',
-                total_hours_worked: {
-                    required: true,
-                    number: true,
-                    min: 0
-                }
+    function showDates() {
+        const employeeSelect = document.getElementById('user_id');
+        const selectedEmployee = employeeSelect.value;
+        const monthSelect = document.getElementById('select_month');
+        const selectedMonth = monthSelect.value;
+        const yearSelect = document.getElementById('select_year');
+        const selectedYear = yearSelect.value;
+        const datesContainer = document.getElementById('datesContainer');
+        const saveButton = document.getElementById('saveAttendance');
+        datesContainer.innerHTML = '';  // Clear the container each time the button is clicked
+
+        if (selectedEmployee && selectedMonth && selectedYear) {
+            const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                // Check if the day is a weekend (Saturday or Sunday)
+                const currentDate = new Date(selectedYear, selectedMonth - 1, day);
+                const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'row mb-2';
+
+                const dateLabel = document.createElement('label');
+                dateLabel.className = 'col-md-2 col-form-label';
+                dateLabel.innerText = `Date: ${day}/${selectedMonth}/${selectedYear}`;
+
+                // Creating a dropdown for status
+                const statusSelect = document.createElement('select');
+                statusSelect.name = `status[${day}]`; 
+                statusSelect.className = 'form-select col-md-4 ms-2';
+                
+                // Define status options
+                const statusOptions = isWeekend 
+                    ? ['Weekend'] 
+                    : ['Present', 'Absent', 'Half Day', 'Leave'];
+
+                statusOptions.forEach(status => {
+                    const option = document.createElement('option');
+                    option.value = status;
+                    option.innerText = status;
+                    
+                    // If it's a weekend, automatically select 'Weekend'
+                    if (isWeekend && status === 'Weekend') {
+                        option.selected = true;
+                    }
+                    
+                    statusSelect.appendChild(option);
+                });
+
+                // Appending the elements to the container
+                dateDiv.appendChild(dateLabel);
+                dateDiv.appendChild(statusSelect);
+                datesContainer.appendChild(dateDiv);
             }
-        });
-    });
+
+            // Show save button
+            saveButton.style.display = 'block';
+        } else {
+            alert('Please select Employee, Month, and Year');
+        }
+    }
 </script>
 @endsection
