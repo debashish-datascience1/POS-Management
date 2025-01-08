@@ -66,6 +66,7 @@ use App\Http\Controllers\EmployeeAdvanceController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\BalanceController;
+use App\Http\Controllers\PaySalaryController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -122,7 +123,16 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         Route::get('/packing/{id}/edit', [App\Http\Controllers\PackingController::class, 'edit'])->name('packing.edit');
         Route::put('/packing/{id}', [App\Http\Controllers\PackingController::class, 'update'])->name('packing.update');
         Route::delete('/packing/{id}', [App\Http\Controllers\PackingController::class, 'destroy'])->name('packing.destroy');
+
+        Route::get('/final-product', [App\Http\Controllers\FinalProductController::class, 'index'])->name('final-product.index');
+        Route::get('/final-product/create', [App\Http\Controllers\FinalProductController::class, 'create'])->name('final-product.create');
+        Route::post('/final-product', [App\Http\Controllers\FinalProductController::class, 'store'])->name('final-product.store');
+        Route::get('/final-product/{id}/edit', [App\Http\Controllers\FinalProductController::class, 'edit'])->name('final-product.edit');
+        Route::put('/final-product/{id}', [App\Http\Controllers\FinalProductController::class, 'update'])->name('final-product.update');
+        Route::delete('/final-product/{id}', [App\Http\Controllers\FinalProductController::class, 'destroy'])->name('final-product.destroy');
+
     });
+
     Route::group(['prefix' => 'utilize', 'as' => 'utilize.'], function () {
         Route::get('/', [UtilizeController::class, 'index'])->name('index');
         Route::get('/create', [UtilizeController::class, 'create'])->name('create');
@@ -153,21 +163,8 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
    Route::delete('attendance/{attendance}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
    
  
-
-
-
-
-    Route::prefix('final-product')->group(function () {
-        Route::get('/', [FinalProductController::class, 'index'])->name('final-product.index');
-        Route::get('/create', [FinalProductController::class, 'create'])->name('final-product.create');
-        Route::post('/store', [FinalProductController::class, 'store'])->name('final-product.store');
-        Route::get('/edit/{id}', [FinalProductController::class, 'edit'])->name('final-product.edit');
-        Route::put('/update/{id}', [FinalProductController::class, 'update'])->name('final-product.update');
-        Route::delete('/delete/{id}', [FinalProductController::class, 'destroy'])->name('final-product.destroy');
-    });
-
-
-
+//====================
+    
       Route::group(['prefix' => 'hrms', 'middleware' => ['auth','AdminSidebarMenu']], function () {
     // Employee Routes
             Route::get('employee', [App\Http\Controllers\EmployeeController::class, 'index'])->name('employees.index');
@@ -180,6 +177,22 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
              // Employee Advance Routes
 
         });
+
+
+        //=================================PAYMENT MODE  HRMS===========================================================    
+
+        // HRMS section routes
+        Route::prefix('hrms')->group(function() {
+            // Display the Pay Salary page
+            Route::get('pay-salary', [PaySalaryController::class, 'index'])->name('pay_salary.index');
+        
+            // Process a salary payment (POST route for storing salary)
+            Route::post('pay-salary/{employeeId}', [PaySalaryController::class, 'paySalary'])->name('pay_salary.store');
+        });
+        
+
+
+
        
 
         Route::group(['prefix' => 'hrms'], function () {
@@ -231,8 +244,9 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         
         
     
-    
+    Route::post('/packing/get-temperature-quantity1', [\App\Http\Controllers\PackingController::class, 'getTemperatureQuantity1'])->name('packing.getTemperatureQuantity1');
     Route::post('/packing/get-temperature-quantity', [\App\Http\Controllers\PackingController::class, 'getTemperatureQuantity'])->name('packing.getTemperatureQuantity');
+    
     Route::get('/get-packing-stock/{location_id}', [\App\Http\Controllers\PackingController::class, 'getPackingStock']);
     Route::post('/validate-packing-stock', [\App\Http\Controllers\PackingController::class, 'validateStock']);
     Route::get('/get-product-stock/{id}', [App\Http\Controllers\ProductController::class, 'getProductStock']);

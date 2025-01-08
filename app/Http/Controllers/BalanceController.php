@@ -276,6 +276,7 @@ class BalanceController extends Controller
 
 
            // Handle packing data
+           // Handle packing data
             if ($request->has('jar_quantities') || $request->has('packet_quantities')) {
                 // Initialize the Packing instance
                 $packing = new Packing();
@@ -292,14 +293,12 @@ class BalanceController extends Controller
                     // Only add if we have both size and quantity
                     if (isset($jar_sizes[$i]) && isset($jar_quantities[$i]) && 
                         $jar_quantities[$i] !== null && $jar_quantities[$i] !== '') {
-                        $jar_data[] = [
-                            'size' => $jar_sizes[$i],
-                            'quantity' => (float) $jar_quantities[$i]
-                        ];
+                        // Format: "size:quantity:price"
+                        $jar_data[] = $jar_sizes[$i] . ":" . $jar_quantities[$i] . ":0";
                     }
                 }
                 
-                // Store jar data as JSON
+                // Store jar data as JSON array of formatted strings
                 $packing->jar = !empty($jar_data) ? json_encode($jar_data) : null;
 
                 // Handle packet data
@@ -311,26 +310,24 @@ class BalanceController extends Controller
                     // Only add if we have both size and quantity
                     if (isset($packet_sizes[$i]) && isset($packet_quantities[$i]) && 
                         $packet_quantities[$i] !== null && $packet_quantities[$i] !== '') {
-                        $packet_data[] = [
-                            'size' => $packet_sizes[$i],
-                            'quantity' => (float) $packet_quantities[$i]
-                        ];
+                        // Format: "size:quantity:price"
+                        $packet_data[] = $packet_sizes[$i] . ":" . $packet_quantities[$i] . ":0";
                     }
                 }
                 
-                // Store packet data as JSON
+                // Store packet data as JSON array of formatted strings
                 $packing->packet = !empty($packet_data) ? json_encode($packet_data) : null;
 
                 // Save the packing data
                 $packing->save();
 
-                // Calculate totals using array_reduce for better accuracy
-                $total_jar_quantity = array_reduce($jar_data, function($carry, $item) {
-                    return $carry + (float)$item['quantity'];
+                // Calculate totals
+                $total_jar_quantity = array_reduce($jar_quantities, function($carry, $quantity) {
+                    return $carry + (!empty($quantity) ? (float)$quantity : 0);
                 }, 0.0);
                 
-                $total_packet_quantity = array_reduce($packet_data, function($carry, $item) {
-                    return $carry + (float)$item['quantity'];
+                $total_packet_quantity = array_reduce($packet_quantities, function($carry, $quantity) {
+                    return $carry + (!empty($quantity) ? (float)$quantity : 0);
                 }, 0.0);
                 
                 $total_quantity = $total_jar_quantity + $total_packet_quantity;
@@ -354,19 +351,33 @@ class BalanceController extends Controller
                     'quantity' => json_encode($request->quantities),
                     'product_output' => $request->product_output,
                 ]);
-                
-
-                // 2. Update temperatures and create history records
+            
                 foreach ($request->temperatures as $index => $temperature_id) {
                     $quantity = $request->quantities[$index];
                     
-                    // Update temperature table
-                    DB::table('temperature')
+                    // Check if temperature record exists
+                    $tempExists = DB::table('temperature')
                         ->where('temperature', $temperature_id)
-                        ->update([
-                            'temp_quantity' => DB::raw('COALESCE(temp_quantity, 0) + ' . $quantity)
+                        ->exists();
+            
+                    if ($tempExists) {
+                        // Update existing temperature record
+                        DB::table('temperature')
+                            ->where('temperature', $temperature_id)
+                            ->update([
+                                'temp_quantity' => DB::raw('COALESCE(temp_quantity, 0) + ' . $quantity),
+                                'updated_at' => now()
+                            ]);
+                    } else {
+                        // Create new temperature record
+                        DB::table('temperature')->insert([
+                            'temperature' => $temperature_id,
+                            'temp_quantity' => $quantity,
+                            'created_at' => now(),
+                            'updated_at' => now()
                         ]);
-
+                    }
+            
                     // Create history record
                     DB::table('temperature_history')->insert([
                         'business_id' => $business_id,

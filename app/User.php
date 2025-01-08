@@ -12,6 +12,7 @@ use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use App\Salary;
 use App\EmployeeAdvance;
+use App\SalaryPayment;
 
 
 class User extends Authenticatable
@@ -335,6 +336,11 @@ class User extends Authenticatable
     public function employeeAdvances()
     {
         return $this->hasMany(EmployeeAdvance::class, 'user_id', 'id');
+    }
+
+    public function salaryPayments()
+    {
+        return $this->hasMany(SalaryPayment::class);
     }
 
 }

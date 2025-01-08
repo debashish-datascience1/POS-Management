@@ -97,78 +97,85 @@ class PackingController extends Controller
         }
 
         if (request()->ajax()) {
-            $business_id = request()->session()->get('user.business_id');
+            try
+            {
+            
+                $business_id = request()->session()->get('user.business_id');
 
-            $packings = Packing::where('business_id', $business_id)
-                ->select([
-                    'id', 
-                    'date', 
-                    'product_temperature', 
-                    'quantity', 
-                    'jar', 
-                    'packet', 
-                    'grand_total', 
-                    'created_at'
-                ]);
+                $packings = Packing::where('business_id', $business_id)
+                    ->select([
+                        'id', 
+                        'date', 
+                        'product_temperature', 
+                        'quantity', 
+                        'jar', 
+                        'packet', 
+                        'grand_total', 
+                        'created_at'
+                    ]);
 
-            return DataTables::of($packings)
-                ->addColumn('action', function ($row) {
-                    $html = '<div class="btn-group">
-                                <button type="button" class="btn btn-info dropdown-toggle btn-xs" 
-                                    data-toggle="dropdown" aria-expanded="false">' .
-                        __("messages.actions") .
-                        '<span class="caret"></span><span class="sr-only">Toggle Dropdown
-                                    </span>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-right" role="menu">
-                                <li><a href="' . action([self::class, 'edit'], [$row->id]) . '"><i class="glyphicon glyphicon-edit"></i> ' . __("messages.edit") . '</a></li>
-                                <li><a href="#" data-href="' . action([self::class, 'destroy'], [$row->id]) . '" class="delete_packing_button"><i class="glyphicon glyphicon-trash"></i> ' . __("messages.delete") . '</a></li>
-                                </ul>
-                            </div>';
-                    return $html;
-                })
-                ->editColumn('product_temperature', function ($row) {
-                    try {
-                        $productTemps = is_array($row->product_temperature) ? $row->product_temperature : (is_string($row->product_temperature) ? json_decode($row->product_temperature, true) : []);
-                        return implode('<br>', array_map(function ($temp) {
-                            return is_numeric($temp) ? number_format((float)$temp, 1) . '°C' : '0.0°C';
-                        }, $productTemps ?: []));
-                    } catch (\Exception $e) {
-                        return '0.0°C';
-                    }
-                })
-                ->editColumn('quantity', function ($row) {
-                    try {
-                        $quantities = is_array($row->quantity) ? $row->quantity : (is_string($row->quantity) ? json_decode($row->quantity, true) : []);
-                        return implode('<br>', array_map(function ($qty) {
-                            return is_numeric($qty) ? number_format((float)$qty, 2) : '0.00';
-                        }, $quantities ?: []));
-                    } catch (\Exception $e) {
-                        return '0.00';
-                    }
-                })
-                ->editColumn('jar', function ($row) {
-                    return $this->formatPackingData($row->jar);
-                })
-                ->editColumn('packet', function ($row) {
-                    return $this->formatPackingData($row->packet);
-                })
-                ->editColumn('grand_total', function ($row) {
-                    return is_numeric($row->grand_total) ?
-                        number_format((float)$row->grand_total, 2) : '0.00';
-                })
-                ->editColumn('date', function ($row) {
-                    return \Carbon\Carbon::parse($row->date)->format('d/m/Y');
-                })
-                ->editColumn('created_at', '{{@format_datetime($created_at)}}')
-                ->rawColumns([
-                    'action', 
-                    'product_temperature',
-                    'quantity', 
-                    'jar', 
-                    'packet'
-                ])
-                ->make(true);
+                return DataTables::of($packings)
+                    ->addColumn('action', function ($row) {
+                        $html = '<div class="btn-group">
+                                    <button type="button" class="btn btn-info dropdown-toggle btn-xs" 
+                                        data-toggle="dropdown" aria-expanded="false">' .
+                            __("messages.actions") .
+                            '<span class="caret"></span><span class="sr-only">Toggle Dropdown
+                                        </span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-right" role="menu">
+                                    <li><a href="' . action([self::class, 'edit'], [$row->id]) . '"><i class="glyphicon glyphicon-edit"></i> ' . __("messages.edit") . '</a></li>
+                                    <li><a href="#" data-href="' . action([self::class, 'destroy'], [$row->id]) . '" class="delete_packing_button"><i class="glyphicon glyphicon-trash"></i> ' . __("messages.delete") . '</a></li>
+                                    </ul>
+                                </div>';
+                        return $html;
+                    })
+                    ->editColumn('product_temperature', function ($row) {
+                        try {
+                            $productTemps = is_array($row->product_temperature) ? $row->product_temperature : (is_string($row->product_temperature) ? json_decode($row->product_temperature, true) : []);
+                            return implode('<br>', array_map(function ($temp) {
+                                return is_numeric($temp) ? number_format((float)$temp, 1) . '°C' : '0.0°C';
+                            }, $productTemps ?: []));
+                        } catch (\Exception $e) {
+                            return '0.0°C';
+                        }
+                    })
+                    ->editColumn('quantity', function ($row) {
+                        try {
+                            $quantities = is_array($row->quantity) ? $row->quantity : (is_string($row->quantity) ? json_decode($row->quantity, true) : []);
+                            return implode('<br>', array_map(function ($qty) {
+                                return is_numeric($qty) ? number_format((float)$qty, 2) : '0.00';
+                            }, $quantities ?: []));
+                        } catch (\Exception $e) {
+                            return '0.00';
+                        }
+                    })
+                    ->editColumn('jar', function ($row) {
+                        return $this->formatPackingData($row->jar);
+                    })
+                    ->editColumn('packet', function ($row) {
+                        return $this->formatPackingData($row->packet);
+                    })
+                    ->editColumn('grand_total', function ($row) {
+                        return is_numeric($row->grand_total) ?
+                            number_format((float)$row->grand_total, 2) : '0.00';
+                    })
+                    ->editColumn('date', function ($row) {
+                        return \Carbon\Carbon::parse($row->date)->format('d/m/Y');
+                    })
+                    ->editColumn('created_at', '{{@format_datetime($created_at)}}')
+                    ->rawColumns([
+                        'action', 
+                        'product_temperature',
+                        'quantity', 
+                        'jar', 
+                        'packet'
+                    ])
+                    ->make(true);
+            } catch (\Exception $e) {
+                \Log::error('Packing DataTable Error: ' . $e->getMessage());
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
         }
 
         return view('packing.index');

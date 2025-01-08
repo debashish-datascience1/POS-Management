@@ -3,6 +3,7 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use App\BusinessLocation;
 
 class FinalProduct extends Model
 {
@@ -11,7 +12,7 @@ class FinalProduct extends Model
      *
      * @var string
      */
-    protected $table = 'final_products';
+    protected $table = 'final_product';
 
     /**
      * The attributes that are mass assignable.
@@ -19,10 +20,15 @@ class FinalProduct extends Model
      * @var array
      */
     protected $fillable = [
-        'product_name', 
-        'description', 
-        'quantity', 
-        'sum'
+        'date',
+        'business_id',
+        'temperature',
+        'product_temperature',
+        'quantity',
+        'mix',
+        'total',
+        'grand_total',
+        'location_id'
     ];
 
     /**
@@ -31,7 +37,19 @@ class FinalProduct extends Model
      * @var array
      */
     protected $casts = [
-        'quantity' => 'integer',
-        'sum' => 'decimal:2'
+        'temperature' => 'array',
+        'product_temperature' => 'array',
+        'quantity' => 'array',
+        'mix' => 'array',
+        'total' => 'array',
+        'date' => 'date'
     ];
+
+    /**
+     * Relationship with Business Location
+     */
+    public function location()
+    {
+        return $this->belongsTo(BusinessLocation::class, 'location_id');
+    }
 }

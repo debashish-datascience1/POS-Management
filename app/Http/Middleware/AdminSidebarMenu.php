@@ -362,9 +362,9 @@ class AdminSidebarMenu
                 )->order(25);
             }
       // In sidebar.blade.php
-$menu->dropdown(
-    __('lang_v1.hrms'),
-    function ($sub) {
+       $menu->dropdown(
+        __('lang_v1.hrms'),
+       function ($sub) {
 
         // Employee Subsection
         if (auth()->user()->can('employee.view')) {
@@ -372,8 +372,8 @@ $menu->dropdown(
                 action([\App\Http\Controllers\EmployeeController::class, 'index']),
                 __('lang_v1.employee'),
                 ['icon' => '', 'active' => request()->is('hrms/employee*')]
-            );
-        }
+                     );
+                                                  }
 
         // Employee Advance Subsection
         if (auth()->user()->can('employee.view')) {
@@ -402,6 +402,18 @@ $menu->dropdown(
             );
         }
 
+
+         // Pay Salary Subsection (New Addition)
+         if (auth()->user()->can('pay_salary.view')) {
+            $sub->url(
+                action([\App\Http\Controllers\PaySalaryController::class, 'index']),
+                __('lang_v1.pay_salary'),
+                ['icon' => '', 'active' => request()->is('hrms/pay-salary*')]
+            );
+        }
+
+        
+
     },
     ['icon' => '<svg aria-hidden="true" class="tw-size-5 tw-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
@@ -412,7 +424,7 @@ $menu->dropdown(
                 <path d="M9 16l.01 0"></path>
                 <path d="M13 16l2 0"></path>
             </svg>', 'active' => request()->is('hrms*')]
-)->order(26); // Adjust the order number as needed
+      )->order(26); // Adjust the order number as needed
 
         
 
@@ -1004,7 +1016,7 @@ $menu->dropdown(
                         if (auth()->user()->can('balance.settings.access')) {  // Check for the permission 'balance.settings.access'
                             $sub->url(
                                 action([\App\Http\Controllers\BalanceController::class, 'index']),
-                                __('Blance'), // The name of the section in the menu
+                                __('Balance'), // The name of the section in the menu
                                 ['icon' => '', 'active' => request()->segment(1) == 'balance'] // Adjust 'balance' based on the segment for the URL
                             );
                         }

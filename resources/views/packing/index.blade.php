@@ -23,11 +23,8 @@
                 <thead>
                     <tr>
                         <th>@lang('messages.date')</th>
-                        <th>@lang('lang_v1.temperature')</th>
                         <th>@lang('lang_v1.product_temperature')</th>
                         <th>@lang('lang_v1.quantity')</th>
-                        <th>@lang('lang_v1.mix')</th>
-                        <th>@lang('lang_v1.total')</th>
                         <th>@lang('lang_v1.jar')</th>
                         <th>@lang('lang_v1.packet')</th>
                         <th>@lang('lang_v1.grand_total')</th>
@@ -49,14 +46,17 @@ $(document).ready(function() {
     var packing_table = $('#packing_table').DataTable({
         processing: true,
         serverSide: true,
-        ajax: '/production/packing',
+        ajax: {
+        url: "{{ route('packing.index') }}",
+        error: function (xhr, error, thrown) {
+            console.log('Ajax error:', error);
+            console.log('Response:', xhr.responseText);
+        }
+    },
         columns: [
             { data: 'date', name: 'date' },
-            { data: 'temperature', name: 'temperature' },
             { data: 'product_temperature', name: 'product_temperature' },
             { data: 'quantity', name: 'quantity' },
-            { data: 'mix', name: 'mix' },
-            { data: 'total', name: 'total' },
             { data: 'jar', name: 'jar' },
             { data: 'packet', name: 'packet' },
             { data: 'grand_total', name: 'grand_total' },

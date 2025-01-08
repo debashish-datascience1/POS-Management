@@ -43,7 +43,7 @@
                     <div class="temperature-entry row">
                         <div class="col-md-5">
                             <div class="form-group">
-                                {!! Form::label('temperatures[]', __('temperature.temperature') . ':*') !!}
+                                {!! Form::label('temperatures[]', __('lang_v1.temperature.temperature') . ':*') !!}
                                 {!! Form::text('temperatures[]', null, [
                                     'class' => 'form-control', 
                                     'required', 
@@ -59,7 +59,7 @@
                         </div>
                         <div class="col-md-2">
                             <button type="button" class="btn btn-danger remove-entry" style="margin-top: 25px;">
-                                @lang('messages.remove')
+                                @lang('lang_v1.messages.remove')
                             </button>
                         </div>
                     </div>
@@ -68,7 +68,7 @@
                 <div class="row">
                     <div class="col-md-12">
                         <button type="button" class="btn btn-success" id="add-more-entry">
-                            <i class="fa fa-plus"></i> @lang('messages.add_more')
+                            <i class="fa fa-plus"></i> @lang('lang_v1.messages.add_more')
                         </button>
                     </div>
                 </div>
@@ -76,10 +76,10 @@
                 <div class="row mt-3">
                     <div class="col-md-12">
                         <div class="alert alert-info">
-                            <strong>@lang('messages.total_quantity'): </strong>
+                            <strong>@lang('lang_v1.messages.total_quantity'): </strong>
                             <span id="total-quantity">0</span>
                             <br>
-                            <strong>@lang('messages.remaining_quantity'): </strong>
+                            <strong>@lang('lang_v1.messages.remaining_quantity'): </strong>
                             <span id="remaining-quantity">0</span>
                         </div>
                     </div>
@@ -133,7 +133,7 @@ $(document).ready(function() {
             <div class="temperature-entry row">
                 <div class="col-md-5">
                     <div class="form-group">
-                        {!! Form::label('temperatures[]', __('temperature.temperature') . ':*') !!}
+                        {!! Form::label('temperatures[]', __('lang_v1.temperature.temperature') . ':*') !!}
                         {!! Form::text('temperatures[]', null, [
                             'class' => 'form-control', 
                             'required', 
@@ -149,7 +149,7 @@ $(document).ready(function() {
                 </div>
                 <div class="col-md-2">
                     <button type="button" class="btn btn-danger remove-entry" style="margin-top: 25px;">
-                        @lang('messages.remove')
+                        @lang('lang_v1.messages.remove')
                     </button>
                 </div>
             </div>

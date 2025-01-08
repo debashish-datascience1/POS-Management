@@ -29,7 +29,7 @@
                                         'required',
                                         'placeholder' => __('messages.date'),
                                         'id' => 'date',
-                                        'readonly',
+                                        // Remove the 'readonly' => true
                                     ]) !!}
                                 </div>
                             </div>
@@ -108,7 +108,7 @@
                         <div class="temperature-entry row">
                             <div class="col-md-5">
                                 <div class="form-group">
-                                    {!! Form::label('temperatures[]', __('temperature.temperature') . ':*') !!}
+                                    {!! Form::label('temperatures[]', __('lang_v1.temperature.temperature') . ':*') !!}
                                     {!! Form::text('temperatures[]', null, [
                                         'class' => 'form-control',
                                         'required',
@@ -129,7 +129,7 @@
                             </div>
                             <div class="col-md-2">
                                 <button type="button" class="btn btn-danger remove-entry" style="margin-top: 25px;">
-                                    @lang('messages.remove')
+                                    @lang('lang_v1.messages.remove')
                                 </button>
                             </div>
                         </div>
@@ -138,7 +138,7 @@
                     <div class="row">
                         <div class="col-md-12">
                             <button type="button" class="btn btn-success" id="add-more-entry">
-                                <i class="fa fa-plus"></i> @lang('messages.add_more')
+                                <i class="fa fa-plus"></i> @lang('lang_v1.messages.add_more')
                             </button>
                         </div>
                     </div>
@@ -176,7 +176,7 @@
                                             ]) !!}
                                         </div>
                                     </div>
-                                    <div class="col-md-2">
+                                    <div class="col-md-5">
                                         <button type="button" class="btn btn-danger remove-jar"
                                             style="margin-top: 25px;">Remove</button>
                                     </div>
@@ -238,7 +238,7 @@
         <!-------------------------------------------- Submit Button --------------------------------------------->
         <div class="row">
             <div class="col-md-12">
-                <button type="submit" class="btn btn-primary pull-right">@lang('messages.save')</button>
+                <button type="submit" class="btn btn-primary pull-right">@lang('lang_v1.messages.save')</button>
             </div>
         </div>
         {!! Form::close() !!}
@@ -251,20 +251,21 @@
     <script>
         $(document).ready(function() {
 
-        // Initialize Select2 for packet size dropdowns
-        function initializePacketSelect2() {
+            // Initialize Select2 for packet size dropdowns
+            function initializePacketSelect2() {
                 // Destroy any existing Select2 instances first
                 $('.packet-size-select').each(function() {
                     if ($(this).hasClass('select2-hidden-accessible')) {
                         $(this).select2('destroy');
                     }
                 });
-              // Reinitialize Select2
-              $('.packet-size-select').select2({
+                // Reinitialize Select2
+                $('.packet-size-select').select2({
                     width: '100%',
-                    dropdownParent: $('body')  // This ensures dropdowns appear over other elements
+                    dropdownParent: $('body') // This ensures dropdowns appear over other elements
                 });
             }
+
             function initializeJarSelect2() {
                 // Destroy any existing Select2 instances first
                 $('.jar-size-select').each(function() {
@@ -272,11 +273,11 @@
                         $(this).select2('destroy');
                     }
                 });
-                
+
                 // Reinitialize Select2
                 $('.jar-size-select').select2({
                     width: '100%',
-                    dropdownParent: $('body')  // This ensures dropdowns appear over other elements
+                    dropdownParent: $('body') // This ensures dropdowns appear over other elements
                 });
             }
 
@@ -287,10 +288,10 @@
             }, 100);
 
 
-        // Initialize Select2 on page load
+            // Initialize Select2 on page load
 
-        // Add more packet entry
-        $('#add-more-packet').click(function() {
+            // Add more packet entry
+            $('#add-more-packet').click(function() {
                 const packetEntryTemplate = `
                     <div class="packet-entry row">
                         <div class="col-md-5">
@@ -323,41 +324,19 @@
                 initializePacketSelect2(); // Reinitialize all packet selects
             });
 
-        //     const $newEntry = $(packetEntryTemplate);
-        //     $('#packet-entries').append($newEntry);
-        //     initializePacketSelect2();
-        // });
 
-        // Remove packet entry
-        // $(document).on('click', '.remove-packet', function() {
-        //     const entriesCount = $('.packet-entry').length;
-        //     if (entriesCount > 1) {
-        //         $(this).closest('.packet-entry').remove();
-        //         // Reindex packet quantities
-        //         $('.packet-quantity-input').each(function(index) {
-        //             $(this).attr('name', `packet_quantities[${index}]`);
-        //         });
-        //     } else {
-        //         toastr.error('At least one packet entry is required.');
-        //     }
-        // });
+            // Initialize Select2 for jar size dropdowns
+            function initializeJarSelect2() {
+                $('.jar-size-select').select2({
+                    width: '100%'
+                });
+            }
 
-        // Add packet validation to your form submission handler
-        
+            // Initialize Select2 on page load
+            initializeJarSelect2();
 
-        // Initialize select2 for jar size dropdowns
-        // Initialize Select2 for jar size dropdowns
-        function initializeJarSelect2() {
-            $('.jar-size-select').select2({
-                width: '100%'
-            });
-        }
-
-        // Initialize Select2 on page load
-        initializeJarSelect2();
-
-        // Add more jar entry
-        $('#add-more-jar').click(function() {
+            // Add more jar entry
+            $('#add-more-jar').click(function() {
                 const jarEntryTemplate = `
                     <div class="jar-entry row">
                         <div class="col-md-5">
@@ -391,8 +370,8 @@
             });
 
 
-        // Remove jar entry
-        $(document).on('click', '.remove-packet', function() {
+            // Remove jar entry
+            $(document).on('click', '.remove-packet', function() {
                 const entriesCount = $('.packet-entry').length;
                 if (entriesCount > 1) {
                     $(this).closest('.packet-entry').remove();
@@ -414,201 +393,205 @@
             });
 
 
-        // Other existing logic goes here...
+            // Other existing logic goes here...
 
 
 
-        // Add jar validation to your form submission handler
-        let productOutputs = {};
+            // Add jar validation to your form submission handler
+            let productOutputs = {};
 
-        // Function to calculate total quantity from all entries
-        function calculateTotalQuantity() {
-            let total = 0;
-            $('.quantity-input').each(function() {
-                total += parseFloat($(this).val()) || 0;
-            });
-            return total;
-        }
-
-        function updateQuantityDisplays() {
-            const totalQuantity = calculateTotalQuantity();
-            const productOutput = parseFloat($('#product_output').val()) || 0;
-            const remainingQuantity = productOutput - totalQuantity;
-
-            $('#total_quantity').val(totalQuantity.toFixed(2));
-
-            // Update the display of remaining quantity if you have an element for it
-            if ($('#remaining-quantity').length) {
-                $('#remaining-quantity').text(remainingQuantity.toFixed(2));
-                $('#remaining-quantity').css('color', remainingQuantity < 0 ? 'red' : 'inherit');
-            }
-        }
-
-        function updateProductOutput(locationId) {
-            const $productOutput = $('#product_output');
-            const $packingStockId = $('#packing_stock_id');
-
-            if (locationId && productOutputs[locationId]) {
-                const output = productOutputs[locationId];
-                $productOutput.val(output.stock);
-                $packingStockId.val(output.id);
-                updateQuantityDisplays();
-            } else {
-                $productOutput.val('');
-                $packingStockId.val('');
-                updateQuantityDisplays();
-            }
-        }
-
-        // Initialize datepicker
-        $('#date').datepicker({
-            autoclose: true,
-            format: 'yyyy-mm-dd',
-            startDate: new Date().getFullYear() + '-01-01',
-            endDate: new Date().getFullYear() + '-12-31'
-        });
-
-        // Initialize Select2
-        function initializeSelect2(context = $('body')) {
-            context.find('.select2').select2({
-                width: '100%'
-            });
-        }
-        initializeSelect2();
-
-        // Function to update stock display
-        function updateStockDisplay(element) {
-            let productId = $(element).val();
-            let stockSpan = $(element).closest('.form-group').find('.current_stock');
-            let quantityInput = $(element).closest('.raw-material-entry').find('.raw_material');
-            let currentAmountInput = $(element).closest('.raw-material-entry').find('.current_amount');
-
-            if (productId) {
-                $.ajax({
-                    url: '/products/get-stock/' + productId,
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(data) {
-                        let currentStock = parseFloat(data.current_stock);
-                        stockSpan.data('original-stock', currentStock);
-                        stockSpan.data('unit', data.unit);
-                        currentAmountInput.val(currentStock.toFixed(2));
-                        updateRemainingStock(stockSpan, quantityInput, currentStock, data.unit);
-                        validateQuantity(quantityInput, currentStock);
-                        updateProductionQty(quantityInput.closest('.raw-material-entry'));
-                    },
-                    error: function() {
-                        toastr.error('Unable to fetch stock information');
-                        stockSpan.html('Error fetching stock');
-                        currentAmountInput.val('0');
-                    }
+            // Function to calculate total quantity from all entries
+            function calculateTotalQuantity() {
+                let total = 0;
+                $('.quantity-input').each(function() {
+                    total += parseFloat($(this).val()) || 0;
                 });
-            } else {
-                stockSpan.html('');
-                currentAmountInput.val('0');
+                return total;
             }
-        }
 
-        function validateQuantity(input, maxStock) {
-            let quantity = parseFloat(input.val()) || 0;
-            input.removeClass('is-invalid');
-            return true;
-        }
+            function updateQuantityDisplays() {
+                const totalQuantity = calculateTotalQuantity();
+                const productOutput = parseFloat($('#product_output').val()) || 0;
+                const remainingQuantity = productOutput - totalQuantity;
 
-        function updateRemainingStock(stockSpan, quantityInput, currentStock, unit) {
-            let quantity = parseFloat(quantityInput.val()) || 0;
-            // Add your remaining stock calculation logic here if needed
-        }
+                $('#total_quantity').val(totalQuantity.toFixed(2));
 
-        function updateProductionQty(entry) {
-            let currentAmount = parseFloat(entry.find('.current_amount').val()) || 0;
-            let rawMaterial = parseFloat(entry.find('.raw_material').val()) || 0;
-            let productionQty = rawMaterial;
-
-            if (entry.find('.production_qty').length) {
-                entry.find('.production_qty').val(productionQty.toFixed(2));
+                // Update the display of remaining quantity if you have an element for it
+                if ($('#remaining-quantity').length) {
+                    $('#remaining-quantity').text(remainingQuantity.toFixed(2));
+                    $('#remaining-quantity').css('color', remainingQuantity < 0 ? 'red' : 'inherit');
+                }
             }
-            calculateTotals();
-        }
 
-        function calculateTotals() {
-            let totalQuantity = 0;
-            let totalProduction = 0;
+            function updateProductOutput(locationId) {
+                const $productOutput = $('#product_output');
+                const $packingStockId = $('#packing_stock_id');
 
-            $('.raw-material-entry').each(function() {
-                let currentAmount = parseFloat($(this).find('.current_amount').val()) || 0;
-                let rawMaterial = parseFloat($(this).find('.raw_material').val()) || 0;
-                totalQuantity += (currentAmount + rawMaterial);
-                totalProduction += parseFloat($(this).find('.production_qty').val()) || 0;
+                if (locationId && productOutputs[locationId]) {
+                    const output = productOutputs[locationId];
+                    $productOutput.val(output.stock);
+                    $packingStockId.val(output.id);
+                    updateQuantityDisplays();
+                } else {
+                    $productOutput.val('');
+                    $packingStockId.val('');
+                    updateQuantityDisplays();
+                }
+            }
+
+            // Initialize datepicker
+            $('#date').datepicker({
+                autoclose: true,
+                format: 'yyyy-mm-dd',
+                clearBtn: true,
+                todayHighlight: true,
+                // Optional: Set a reasonable past date limit (e.g., 10 years ago)
+                startDate: new Date(new Date().getFullYear() - 10, 0, 1),
+                // Optional: Set a reasonable future date limit (e.g., 5 years ahead)
+                endDate: new Date(new Date().getFullYear() + 5, 11, 31)
             });
 
-            $('#total_quantity').val(totalQuantity.toFixed(2));
-            if ($('#total_production').length) {
-                $('#total_production').val(totalProduction.toFixed(2));
+            // Initialize Select2
+            function initializeSelect2(context = $('body')) {
+                context.find('.select2').select2({
+                    width: '100%'
+                });
             }
-        }
+            initializeSelect2();
 
-        // Event Handlers
-        $(document).on('input', '.quantity-input', function() {
-            updateQuantityDisplays();
-        });
+            // Function to update stock display
+            function updateStockDisplay(element) {
+                let productId = $(element).val();
+                let stockSpan = $(element).closest('.form-group').find('.current_stock');
+                let quantityInput = $(element).closest('.raw-material-entry').find('.raw_material');
+                let currentAmountInput = $(element).closest('.raw-material-entry').find('.current_amount');
 
-        $('#location_id').on('change', function() {
-            const locationId = $(this).val();
-            updateProductOutput(locationId);
-        });
-
-        $(document).on('change', '.product_id', function() {
-            updateStockDisplay(this);
-        });
-
-        $(document).on('input', '.raw_material, .current_amount', function() {
-            let entry = $(this).closest('.raw-material-entry');
-            let stockSpan = entry.find('.current_stock');
-            let originalStock = stockSpan.data('original-stock');
-
-            if (originalStock !== undefined) {
-                updateRemainingStock(stockSpan, $(this), originalStock, stockSpan.data('unit'));
-                validateQuantity($(this), originalStock);
-                updateProductionQty(entry);
+                if (productId) {
+                    $.ajax({
+                        url: '/products/get-stock/' + productId,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(data) {
+                            let currentStock = parseFloat(data.current_stock);
+                            stockSpan.data('original-stock', currentStock);
+                            stockSpan.data('unit', data.unit);
+                            currentAmountInput.val(currentStock.toFixed(2));
+                            updateRemainingStock(stockSpan, quantityInput, currentStock, data.unit);
+                            validateQuantity(quantityInput, currentStock);
+                            updateProductionQty(quantityInput.closest('.raw-material-entry'));
+                        },
+                        error: function() {
+                            toastr.error('Unable to fetch stock information');
+                            stockSpan.html('Error fetching stock');
+                            currentAmountInput.val('0');
+                        }
+                    });
+                } else {
+                    stockSpan.html('');
+                    currentAmountInput.val('0');
+                }
             }
-        });
 
-        // Add/Remove Entry Handlers
-        $('#add_more').click(function() {
-            let newEntry = $('.raw-material-entry:first').clone();
-            newEntry.find('input').val('0');
-            newEntry.find('select').val('').removeClass('select2-hidden-accessible').next(
-                '.select2-container').remove();
-            newEntry.find('.current_stock').html('');
-            $('#raw_materials').append(newEntry);
-            initializeSelect2(newEntry);
-        });
+            function validateQuantity(input, maxStock) {
+                let quantity = parseFloat(input.val()) || 0;
+                input.removeClass('is-invalid');
+                return true;
+            }
 
-        $('#add-more-entry').click(function() {
-            const $newEntry = $(getEntryTemplate());
-            $('#temperature-entries').append($newEntry);
-        });
+            function updateRemainingStock(stockSpan, quantityInput, currentStock, unit) {
+                let quantity = parseFloat(quantityInput.val()) || 0;
+                // Add your remaining stock calculation logic here if needed
+            }
 
-        $(document).on('click', '.remove-material', function() {
-            if ($('.raw-material-entry').length > 1) {
-                $(this).closest('.raw-material-entry').remove();
+            function updateProductionQty(entry) {
+                let currentAmount = parseFloat(entry.find('.current_amount').val()) || 0;
+                let rawMaterial = parseFloat(entry.find('.raw_material').val()) || 0;
+                let productionQty = rawMaterial;
+
+                if (entry.find('.production_qty').length) {
+                    entry.find('.production_qty').val(productionQty.toFixed(2));
+                }
                 calculateTotals();
             }
-        });
 
-        $(document).on('click', '.remove-entry', function() {
-            const entriesCount = $('.temperature-entry').length;
-            if (entriesCount > 1) {
-                $(this).closest('.temperature-entry').remove();
-                updateQuantityDisplays();
-            } else {
-                toastr.error('At least one temperature entry is required.');
+            function calculateTotals() {
+                let totalQuantity = 0;
+                let totalProduction = 0;
+
+                $('.raw-material-entry').each(function() {
+                    let currentAmount = parseFloat($(this).find('.current_amount').val()) || 0;
+                    let rawMaterial = parseFloat($(this).find('.raw_material').val()) || 0;
+                    totalQuantity += (currentAmount + rawMaterial);
+                    totalProduction += parseFloat($(this).find('.production_qty').val()) || 0;
+                });
+
+                $('#total_quantity').val(totalQuantity.toFixed(2));
+                if ($('#total_production').length) {
+                    $('#total_production').val(totalProduction.toFixed(2));
+                }
             }
-        });
 
-        function getEntryTemplate() {
-            return `
+            // Event Handlers
+            $(document).on('input', '.quantity-input', function() {
+                updateQuantityDisplays();
+            });
+
+            $('#location_id').on('change', function() {
+                const locationId = $(this).val();
+                updateProductOutput(locationId);
+            });
+
+            $(document).on('change', '.product_id', function() {
+                updateStockDisplay(this);
+            });
+
+            $(document).on('input', '.raw_material, .current_amount', function() {
+                let entry = $(this).closest('.raw-material-entry');
+                let stockSpan = entry.find('.current_stock');
+                let originalStock = stockSpan.data('original-stock');
+
+                if (originalStock !== undefined) {
+                    updateRemainingStock(stockSpan, $(this), originalStock, stockSpan.data('unit'));
+                    validateQuantity($(this), originalStock);
+                    updateProductionQty(entry);
+                }
+            });
+
+            // Add/Remove Entry Handlers
+            $('#add_more').click(function() {
+                let newEntry = $('.raw-material-entry:first').clone();
+                newEntry.find('input').val('0');
+                newEntry.find('select').val('').removeClass('select2-hidden-accessible').next(
+                    '.select2-container').remove();
+                newEntry.find('.current_stock').html('');
+                $('#raw_materials').append(newEntry);
+                initializeSelect2(newEntry);
+            });
+
+            $('#add-more-entry').click(function() {
+                const $newEntry = $(getEntryTemplate());
+                $('#temperature-entries').append($newEntry);
+            });
+
+            $(document).on('click', '.remove-material', function() {
+                if ($('.raw-material-entry').length > 1) {
+                    $(this).closest('.raw-material-entry').remove();
+                    calculateTotals();
+                }
+            });
+
+            $(document).on('click', '.remove-entry', function() {
+                const entriesCount = $('.temperature-entry').length;
+                if (entriesCount > 1) {
+                    $(this).closest('.temperature-entry').remove();
+                    updateQuantityDisplays();
+                } else {
+                    toastr.error('At least one temperature entry is required.');
+                }
+            });
+
+            function getEntryTemplate() {
+                return `
                             <div class="temperature-entry row">
                                 <div class="col-md-5">
                                     <div class="form-group">
@@ -627,73 +610,74 @@
                                 </div>
                             </div>
                             `;
-        }
-
-        // Form submission handler
-        $('#balance_add_form').on('submit', function(e) {
-            e.preventDefault();
-
-            // Validate and reindex all quantities before submission
-            let isValid = true;
-
-            // Validate jar entries
-            $('.jar-entry').each(function(index) {
-                const jarSize = $(this).find('.jar-size-select').val();
-                const jarQuantity = $(this).find('.jar-quantity-input').val();
-
-                // Reindex the quantity input
-                $(this).find('.jar-quantity-input').attr('name', `jar_quantities[${index}]`);
-
-                if (!jarSize || !jarQuantity) {
-                    toastr.error('Please fill in all jar size and quantity fields');
-                    isValid = false;
-                    return false;
-                }
-            });
-
-            // Validate packet entries
-            $('.packet-entry').each(function(index) {
-                const packetSize = $(this).find('.packet-size-select').val();
-                const packetQuantity = $(this).find('.packet-quantity-input').val();
-
-                // Reindex the quantity input
-                $(this).find('.packet-quantity-input').attr('name',
-                    `packet_quantities[${index}]`);
-
-                if (!packetSize || !packetQuantity) {
-                    toastr.error('Please fill in all packet size and quantity fields');
-                    isValid = false;
-                    return false;
-                }
-            });
-
-            if (!isValid) {
-                return false;
             }
 
-            let formData = $(this).serialize();
+            // Form submission handler
+            $('#balance_add_form').on('submit', function(e) {
+                e.preventDefault();
 
-            $.ajax({
-                url: $(this).attr('action'),
-                type: 'POST',
-                data: formData,
-                success: function(response) {
-                    if (response.success) {
-                        toastr.success(response.msg);
-                        window.location.href = '{{ action([\App\Http\Controllers\BalanceController::class, 'index']) }}'; // Update with your actual URL
-                    } else {
-                        toastr.error(response.msg);
+                // Validate and reindex all quantities before submission
+                let isValid = true;
+
+                // Validate jar entries
+                $('.jar-entry').each(function(index) {
+                    const jarSize = $(this).find('.jar-size-select').val();
+                    const jarQuantity = $(this).find('.jar-quantity-input').val();
+
+                    // Reindex the quantity input
+                    $(this).find('.jar-quantity-input').attr('name', `jar_quantities[${index}]`);
+
+                    if (!jarSize || !jarQuantity) {
+                        toastr.error('Please fill in all jar size and quantity fields');
+                        isValid = false;
+                        return false;
                     }
-                },
-                error: function(xhr) {
-                    if (xhr.responseJSON && xhr.responseJSON.msg) {
-                        toastr.error(xhr.responseJSON.msg);
-                    } else {
-                        toastr.error('An error occurred while processing your request.');
+                });
+
+                // Validate packet entries
+                $('.packet-entry').each(function(index) {
+                    const packetSize = $(this).find('.packet-size-select').val();
+                    const packetQuantity = $(this).find('.packet-quantity-input').val();
+
+                    // Reindex the quantity input
+                    $(this).find('.packet-quantity-input').attr('name',
+                        `packet_quantities[${index}]`);
+
+                    if (!packetSize || !packetQuantity) {
+                        toastr.error('Please fill in all packet size and quantity fields');
+                        isValid = false;
+                        return false;
                     }
+                });
+
+                if (!isValid) {
+                    return false;
                 }
+
+                let formData = $(this).serialize();
+
+                $.ajax({
+                    url: $(this).attr('action'),
+                    type: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        if (response.success) {
+                            toastr.success(response.msg);
+                            window.location.href =
+                                '{{ action([\App\Http\Controllers\BalanceController::class, 'index']) }}'; // Update with your actual URL
+                        } else {
+                            toastr.error(response.msg);
+                        }
+                    },
+                    error: function(xhr) {
+                        if (xhr.responseJSON && xhr.responseJSON.msg) {
+                            toastr.error(xhr.responseJSON.msg);
+                        } else {
+                            toastr.error('An error occurred while processing your request.');
+                        }
+                    }
+                });
             });
-        });
         });
     </script>
 @endsection

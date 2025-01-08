@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', __('employee_advance.create_employee_advance'))
+@section('title', __('lang_v1.employee_advance.create_employee_advance'))
 
 @section('content')
 <!-- Content Header (Page header) -->
@@ -15,7 +15,7 @@
     <div class="row">
         <div class="col-sm-4">
             <div class="form-group">
-                {!! Form::label('user_id', __('employee_advance.employee') . ':*') !!}
+                {!! Form::label('user_id', __('lang_v1.employee_advance.employee') . ':*') !!}
                 <div class="input-group">
                     {!! Form::select('user_id', $employees->pluck('full_name', 'id'), null, ['placeholder' => __('messages.please_select'), 'class' => 'form-control select2', 'required']); !!}
                     {{-- @dd($employees); --}}
@@ -28,15 +28,15 @@
 
         <div class="col-sm-4">
             <div class="form-group">
-                {!! Form::label('date', __('employee_advance.advance_date') . ':*') !!}
+                {!! Form::label('date', __('lang_v1.employee_advance.advance_date') . ':*') !!}
                 {!! Form::date('date', null, ['class' => 'form-control', 'required', 'placeholder' => __('employee_advance.advance_date')]); !!}
             </div>
         </div>
 
         <div class="col-sm-4">
             <div class="form-group">
-                {!! Form::label('refund', __('employee_advance.refund') . ':') !!}
-                {!! Form::text('refund', null, ['class' => 'form-control', 'placeholder' => __('employee_advance.refund')]); !!}
+                {!! Form::label('refund', __('lang_v1.employee_advance.refund') . ':') !!}
+                {!! Form::text('refund', null, ['class' => 'form-control', 'placeholder' => __('lang_v1.employee_advance.refund')]); !!}
             </div>
         </div>
 
@@ -44,22 +44,22 @@
 
         <div class="col-sm-4">
             <div class="form-group">
-                {!! Form::label('refund_date', __('employee_advance.refund_date') . ':') !!}
-                {!! Form::date('refund_date', null, ['class' => 'form-control', 'placeholder' => __('employee_advance.refund_date')]); !!}
+                {!! Form::label('refund_date', __('lang_v1.employee_advance.refund_date') . ':') !!}
+                {!! Form::date('refund_date', null, ['class' => 'form-control', 'placeholder' => __('lang_v1.employee_advance.refund_date')]); !!}
             </div>
         </div>
 
         <div class="col-sm-4">
             <div class="form-group">
-                {!! Form::label('refund_amount', __('employee_advance.refund_amount') . ':') !!}
-                {!! Form::number('refund_amount', null, ['class' => 'form-control', 'placeholder' => __('employee_advance.refund_amount'), 'step' => '0.01']); !!}
+                {!! Form::label('refund_amount', __('lang_v1.employee_advance.refund_amount') . ':') !!}
+                {!! Form::number('refund_amount', null, ['class' => 'form-control', 'placeholder' => __('lang_v1.employee_advance.refund_amount'), 'step' => '0.01']); !!}
             </div>
         </div>
 
         <div class="col-sm-4">
             <div class="form-group">
-                {!! Form::label('balance', __('employee_advance.balance') . ':*') !!}
-                {!! Form::number('balance', null, ['class' => 'form-control', 'required', 'placeholder' => __('employee_advance.balance'), 'step' => '0.01']); !!}
+                {!! Form::label('balance', __('lang_v1.employee_advance.balance') . ':*') !!}
+                {!! Form::number('balance', null, ['class' => 'form-control', 'required', 'placeholder' => __('lang_v1.employee_advance.balance'), 'step' => '0.01']); !!}
             </div>
         </div>
     </div>
@@ -69,7 +69,7 @@
         <div class="col-sm-12">
             <div class="text-center">
                 <div class="btn-group">
-                    <button type="submit" class="tw-dw-btn tw-dw-btn-primary tw-dw-btn-lg tw-text-white submit_employee_advance_form">@lang('messages.save')</button>
+                    <button type="submit" class="tw-dw-btn tw-dw-btn-primary tw-dw-btn-lg tw-text-white submit_employee_advance_form">@lang('lang_v1.messages.save')</button>
                 </div>
             </div>
         </div>

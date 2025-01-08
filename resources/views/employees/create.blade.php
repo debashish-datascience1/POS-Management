@@ -16,20 +16,20 @@
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
-                            {!! Form::label('surname', __('messages.surname') . ':*') !!}
-                            {!! Form::text('surname', old('surname'), ['class' => 'form-control', 'required', 'placeholder' => __('messages.enter_surname')]) !!}
+                            {!! Form::label('surname', __('lang_v1.messages.surname') . ':*') !!}
+                            {!! Form::text('surname', old('surname'), ['class' => 'form-control', 'required', 'placeholder' => __('lang_v1.messages.enter_surname')]) !!}
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            {!! Form::label('first_name', __('messages.first_name') . ':*') !!}
-                            {!! Form::text('first_name', old('first_name'), ['class' => 'form-control', 'required', 'placeholder' => __('messages.enter_first_name')]) !!}
+                            {!! Form::label('first_name', __('lang_v1.messages.first_name') . ':*') !!}
+                            {!! Form::text('first_name', old('first_name'), ['class' => 'form-control', 'required', 'placeholder' => __('lang_v1.messages.enter_first_name')]) !!}
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            {!! Form::label('last_name', __('messages.last_name') . ':*') !!}
-                            {!! Form::text('last_name', old('last_name'), ['class' => 'form-control', 'required', 'placeholder' => __('messages.enter_last_name')]) !!}
+                            {!! Form::label('last_name', __('lang_v1.messages.last_name') . ':*') !!}
+                            {!! Form::text('last_name', old('last_name'), ['class' => 'form-control', 'required', 'placeholder' => __('lang_v1.messages.enter_last_name')]) !!}
                         </div>
                     </div>
                 </div>
@@ -37,19 +37,19 @@
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
-                            {!! Form::label('email', __('messages.email') . ':*') !!}
-                            {!! Form::email('email', old('email'), ['class' => 'form-control', 'required', 'placeholder' => __('messages.enter_email')]) !!}
+                            {!! Form::label('email', __('lang_v1.messages.email') . ':*') !!}
+                            {!! Form::email('email', old('email'), ['class' => 'form-control', 'required', 'placeholder' => __('lang_v1.messages.enter_email')]) !!}
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            {!! Form::label('phone', __('messages.phone') . ':*') !!}
-                            {!! Form::text('phone', old('phone'), ['class' => 'form-control', 'required', 'placeholder' => __('messages.enter_phone')]) !!}
+                            {!! Form::label('phone', __('lang_v1.messages.phone') . ':*') !!}
+                            {!! Form::text('phone', old('phone'), ['class' => 'form-control', 'required', 'placeholder' => __('lang_v1.messages.enter_phone')]) !!}
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            {!! Form::label('gender', __('messages.gender') . ':*') !!}
+                            {!! Form::label('gender', __('lang_v1.messages.gender') . ':*') !!}
                             {!! Form::select('gender', ['' => __('messages.select_gender'), 'Male' => __('messages.male'), 'Female' => __('messages.female'), 'Other' => __('messages.other')], old('gender'), ['class' => 'form-control select2', 'required']) !!}
                         </div>
                     </div>
@@ -58,13 +58,13 @@
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
-                            {!! Form::label('address', __('messages.address') . ':*') !!}
-                            {!! Form::textarea('address', old('address'), ['class' => 'form-control', 'required', 'placeholder' => __('messages.enter_address')]) !!}
+                            {!! Form::label('address', __('lang_v1.messages.address') . ':*') !!}
+                            {!! Form::textarea('address', old('address'), ['class' => 'form-control', 'required', 'placeholder' => __('lang_v1.messages.enter_address')]) !!}
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            {!! Form::label('file_url', __('messages.attach_file') . ':') !!}
+                            {!! Form::label('file_url', __('lang_v1.messages.attach_file') . ':') !!}
                             {!! Form::file('file_url', ['class' => 'form-control']) !!}
                         </div>
                     </div>
@@ -72,7 +72,7 @@
 
                 <div class="row">
                     <div class="col-md-12">
-                        <button type="submit" class="btn btn-primary pull-right">@lang('messages.save')</button>
+                        <button type="submit" class="btn btn-primary pull-right">@lang('lang_v1.messages.save')</button>
                     </div>
                 </div>
             @endcomponent
