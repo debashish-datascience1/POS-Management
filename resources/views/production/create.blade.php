@@ -96,8 +96,8 @@ $(document).ready(function() {
     $('#date').datepicker({
     autoclose: true,
     format: 'yyyy-mm-dd',
-    startDate: new Date().getFullYear() + '-01-01', 
-    endDate: new Date().getFullYear() + '-12-31'  
+    startDate: '2000-01-01',  // Allow dates from year 2000
+    endDate: '2050-12-31'     // Up to year 2050
     });
 
     // Initialize Select2 for existing elements

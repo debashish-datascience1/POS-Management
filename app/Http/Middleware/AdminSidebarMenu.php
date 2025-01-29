@@ -367,15 +367,23 @@ class AdminSidebarMenu
 
                         if ($is_admin || auth()->user()->hasAnyPermission(['sell.view', 'sell.create', 'direct_sell.access', 'direct_sell.view', 'view_own_sell_only', 'view_commission_agent_sell', 'access_shipping', 'access_own_shipping', 'access_commission_agent_shipping'])) {
                             $sub->url(
+                                action([\App\Http\Controllers\FinalProductSellController::class, 'index']),
+                                __('lang_v1.sales'),
+                                ['icon' => '', 'active' => request()->segment(1) == 'sells' && request()->segment(2) == null]
+                            );
+                        }
+
+                        if ($is_admin || auth()->user()->hasAnyPermission(['sell.view', 'sell.create', 'direct_sell.access', 'direct_sell.view', 'view_own_sell_only', 'view_commission_agent_sell', 'access_shipping', 'access_own_shipping', 'access_commission_agent_shipping'])) {
+                            $sub->url(
                                 action([\App\Http\Controllers\SellController::class, 'index']),
-                                __('lang_v1.all_sales'),
+                                __('lang_v1.packing_sales'),
                                 ['icon' => '', 'active' => request()->segment(1) == 'sells' && request()->segment(2) == null]
                             );
                         }
                         if (in_array('add_sale', $enabled_modules) && auth()->user()->can('direct_sell.access')) {
                             $sub->url(
                                 action([\App\Http\Controllers\SellController::class, 'create']),
-                                __('sale.add_sale'),
+                                __('lang_v1.add_packing_sales'),
                                 ['icon' => '', 'active' => request()->segment(1) == 'sells' && request()->segment(2) == 'create' && empty(request()->get('status'))]
                             );
                         }

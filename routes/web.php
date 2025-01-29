@@ -35,6 +35,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationTemplateController;
 use App\Http\Controllers\OpeningStockController;
 use App\Http\Controllers\PrinterController;
+use App\Http\Controllers\FinalProductSellController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -124,6 +125,8 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         Route::delete('/final-product/{id}', [App\Http\Controllers\FinalProductController::class, 'destroy'])->name('final-product.destroy');
 
     });
+
+    
     Route::group(['prefix' => 'utilize', 'as' => 'utilize.'], function () {
         Route::get('/', [UtilizeController::class, 'index'])->name('index');
         Route::get('/create', [UtilizeController::class, 'create'])->name('create');
@@ -142,6 +145,15 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         Route::put('temperature/{temperature}', 'update')->name('temperature.update');
         Route::delete('temperature/{temperature}', 'destroy')->name('temperature.destroy');
     });
+
+    Route::get('/final-product-sells', [App\Http\Controllers\FinalProductSellController::class, 'index'])->name('final-product-sells.index');
+    Route::get('/final-product-sells/create', [App\Http\Controllers\FinalProductSellController::class, 'create'])->name('final-product-sells.create');
+    Route::post('final-product-sells', [App\Http\Controllers\FinalProductSellController::class, 'store'])->name('final-product-sells.store');
+    Route::get('/final-product-sells/{id}/edit', [App\Http\Controllers\FinalProductSellController::class, 'edit'])->name('final-product-sells.edit');
+    Route::put('/final-product-sells/{id}', [App\Http\Controllers\FinalProductSellController::class, 'update'])->name('final-product-sells.update');
+    Route::delete('/final-product-sells/{id}', [App\Http\Controllers\FinalProductSellController::class, 'destroy'])->name('final-product-sells.destroy');
+    Route::resource('final-product-sells', FinalProductSellController::class);
+
     Route::post('/packing/get-temperature-quantity1', [\App\Http\Controllers\PackingController::class, 'getTemperatureQuantity1'])->name('packing.getTemperatureQuantity1');
     Route::post('/packing/get-temperature-quantity', [\App\Http\Controllers\PackingController::class, 'getTemperatureQuantity'])->name('packing.getTemperatureQuantity');
     Route::get('/get-packing-stock/{location_id}', [\App\Http\Controllers\PackingController::class, 'getPackingStock']);
