@@ -95,6 +95,11 @@ class FinalProductSellController extends Controller
                                 '" data-container=".view_modal"><i class="fas fa-eye"></i> ' . __("messages.view") . '</a></li>';
                     }
     
+                    if (auth()->user()->can("sell.update")) {
+                        $html .= '<li><a href="' . action([\App\Http\Controllers\FinalProductSellController::class, 'edit'], [$row->id]) . 
+                                '"><i class="fas fa-edit"></i> ' . __("messages.edit") . '</a></li>';
+                    }
+    
                     if (auth()->user()->can("sell.delete")) {
                         $html .= '<li><a href="#" class="delete-sale" data-href="' . action([\App\Http\Controllers\FinalProductSellController::class, 'destroy'], [$row->id]) . 
                                 '"><i class="fas fa-trash"></i> ' . __("messages.delete") . '</a></li>';
@@ -162,6 +167,7 @@ class FinalProductSellController extends Controller
 
     public function store(Request $request)
     {
+        // dd($request->all());
         try {
             DB::beginTransaction();
             
@@ -179,10 +185,11 @@ class FinalProductSellController extends Controller
                 'quantity.*' => 'required|numeric|min:0.01',
                 'amount' => 'required|array',
                 'amount.*' => 'required|numeric|min:0.01',
+                'grand_total' => 'required|numeric',
             ]);
 
             // Calculate grand total
-            $grand_total = array_sum($request->amount);
+            // $grand_total = array_sum($request->amount);
 
             // Create final product sell
             $final_product_sell = FinalProductSell::create([
@@ -190,7 +197,7 @@ class FinalProductSellController extends Controller
                 'location_id' => $request->location_id,
                 'contact_id' => $request->contact_id,
                 'date' => $request->date,
-                'grand_total' => $grand_total,
+                'grand_total' => $request->grand_total,
                 'created_by' => $user_id
             ]);
 
@@ -240,51 +247,193 @@ class FinalProductSellController extends Controller
         ->with('status', $output);
     }
 
-    public function destroy($id)
-{
-    try {
-        if (!auth()->user()->can('sell.delete')) {
-            abort(403, 'Unauthorized action.');
-        }
-
+    public function edit($id)
+    {
         $business_id = request()->session()->get('user.business_id');
 
-        DB::beginTransaction();
-
-        $final_product_sell = FinalProductSell::where('business_id', $business_id)
-            ->with(['sell_lines'])
-            ->findOrFail($id);
-
-        // Restore the quantities back to temperature_fixed table
-        foreach ($final_product_sell->sell_lines as $line) {
-            DB::table('temperature_fixed')
-                ->where('temperature', $line->product_temperature)
-                ->increment('quantity', $line->quantity);
+        //Check if subscribed or not
+        if (!$this->moduleUtil->isSubscribed($business_id)) {
+            return $this->moduleUtil->expiredResponse();
         }
 
-        // Delete sell lines first
-        $final_product_sell->sell_lines()->delete();
+        $final_product_sell = FinalProductSell::with('sell_lines')
+            ->where('business_id', $business_id)
+            ->findOrFail($id);
 
-        // Delete the main record
-        $final_product_sell->delete();
+        $walk_in_customer = $this->contactUtil->getWalkInCustomer($business_id);
+        $business_details = $this->businessUtil->getDetails($business_id);
+        $customer_groups = CustomerGroup::forDropdown($business_id);
+        
+        // Get business locations
+        $business_locations = BusinessLocation::forDropdown($business_id, false, true);
+        $bl_attributes = $business_locations['attributes'];
+        $business_locations = $business_locations['locations'];
 
-        DB::commit();
+        // Get product temperatures
+        $product_temperatures = DB::table('temperature_fixed')
+            ->pluck('temperature', 'temperature');
 
-        $output = [
-            'success' => true,
-            'msg' => __('lang_v1.sale_delete_success')
-        ];
+        $types = [];
+        if (auth()->user()->can('supplier.create')) {
+            $types['supplier'] = __('report.supplier');
+        }
+        if (auth()->user()->can('customer.create')) {
+            $types['customer'] = __('report.customer');
+        }
+        if (auth()->user()->can('supplier.create') && auth()->user()->can('customer.create')) {
+            $types['both'] = __('lang_v1.both_supplier_customer');
+        }
 
-    } catch (\Exception $e) {
-        DB::rollBack();
-        \Log::emergency("File:" . $e->getFile(). " Line:" . $e->getLine(). " Message:" . $e->getMessage());
-
-        $output = [
-            'success' => false,
-            'msg' => __('messages.something_went_wrong')
-        ];
+        return view('finalproductsell.edit')
+            ->with(compact(
+                'final_product_sell',
+                'walk_in_customer',
+                'business_details',
+                'types',
+                'customer_groups',
+                'business_locations',
+                'bl_attributes',
+                'product_temperatures'
+            ));
     }
 
-    return $output;
-}
+    public function update(Request $request, $id)
+    {
+        try {
+            DB::beginTransaction();
+            
+            $business_id = request()->session()->get('user.business_id');
+            $user_id = request()->session()->get('user.id');
+
+            // Find the final product sell
+            $final_product_sell = FinalProductSell::where('business_id', $business_id)
+                ->findOrFail($id);
+
+            // Validate request
+            $request->validate([
+                'date' => 'required|date',
+                'location_id' => 'required|exists:business_locations,id',
+                'contact_id' => 'required|exists:contacts,id',
+                'product_temperature' => 'required|array',
+                'product_temperature.*' => 'required|exists:temperature_fixed,temperature',
+                'quantity' => 'required|array',
+                'quantity.*' => 'required|numeric|min:0.01',
+                'amount' => 'required|array',
+                'amount.*' => 'required|numeric|min:0.01',
+            ]);
+
+            // Calculate grand total
+            $grand_total = array_sum($request->amount);
+
+            // Update final product sell
+            $final_product_sell->update([
+                'location_id' => $request->location_id,
+                'contact_id' => $request->contact_id,
+                'date' => $request->date,
+                'grand_total' => $request->grand_total,
+                'updated_by' => $user_id
+            ]);
+
+            // Restore quantities from old sell lines
+            foreach ($final_product_sell->sell_lines as $old_line) {
+                DB::table('temperature_fixed')
+                    ->where('temperature', $old_line->product_temperature)
+                    ->increment('quantity', $old_line->quantity);
+            }
+
+            // Delete old sell lines
+            $final_product_sell->sell_lines()->delete();
+
+            // Create new sell lines
+            foreach ($request->product_temperature as $key => $temperature) {
+                // Validate available quantity
+                $available_qty = DB::table('temperature_fixed')
+                    ->where('temperature', $temperature)
+                    ->value('quantity');
+
+                if ($available_qty < $request->quantity[$key]) {
+                    throw new \Exception("Insufficient quantity available for temperature: {$temperature}");
+                }
+
+                // Update temperature quantity
+                DB::table('temperature_fixed')
+                    ->where('temperature', $temperature)
+                    ->decrement('quantity', $request->quantity[$key]);
+
+                // Create sell line
+                $final_product_sell->sell_lines()->create([
+                    'product_temperature' => $temperature,
+                    'quantity' => $request->quantity[$key],
+                    'amount' => $request->amount[$key]
+                ]);
+            }
+
+            DB::commit();
+
+            $output = [
+                'success' => true,
+                'msg' => __('lang_v1.success')
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::emergency("File:" . $e->getFile(). " Line:" . $e->getLine(). " Message:" . $e->getMessage());
+
+            $output = [
+                'success' => false,
+                'msg' => __('messages.something_went_wrong')
+            ];
+        }
+
+        return redirect()->action([\App\Http\Controllers\FinalProductSellController::class, 'index'])
+            ->with('status', $output);
+    }
+
+    public function destroy($id)
+    {
+        try {
+            if (!auth()->user()->can('sell.delete')) {
+                abort(403, 'Unauthorized action.');
+            }
+
+            $business_id = request()->session()->get('user.business_id');
+
+            DB::beginTransaction();
+
+            $final_product_sell = FinalProductSell::where('business_id', $business_id)
+                ->with(['sell_lines'])
+                ->findOrFail($id);
+
+            // Restore the quantities back to temperature_fixed table
+            foreach ($final_product_sell->sell_lines as $line) {
+                DB::table('temperature_fixed')
+                    ->where('temperature', $line->product_temperature)
+                    ->increment('quantity', $line->quantity);
+            }
+
+            // Delete sell lines first
+            $final_product_sell->sell_lines()->delete();
+
+            // Delete the main record
+            $final_product_sell->delete();
+
+            DB::commit();
+
+            $output = [
+                'success' => true,
+                'msg' => __('lang_v1.sale_delete_success')
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::emergency("File:" . $e->getFile(). " Line:" . $e->getLine(). " Message:" . $e->getMessage());
+
+            $output = [
+                'success' => false,
+                'msg' => __('messages.something_went_wrong')
+            ];
+        }
+
+        return $output;
+    }
 }

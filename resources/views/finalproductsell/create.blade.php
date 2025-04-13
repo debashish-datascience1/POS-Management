@@ -2,143 +2,161 @@
 @section('title', 'Create Final Product Sale')
 
 @section('content')
-<section class="content">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="box box-primary">
-                <div class="box-header with-border">
-                    <h3 class="box-title">Create Final Product Sale</h3>
-                </div>
-                <div class="box-body">
-                    {!! Form::open(['url' => action([\App\Http\Controllers\FinalProductSellController::class, 'store']), 'method' => 'post', 'id' => 'final_product_sell_form' ]) !!}
-                    
-                    <div class="row">
-                        <!-- Date Field -->
-                        <div class="col-sm-4">
-                            <div class="form-group">
-                                {!! Form::label('date', __('messages.date') . ':*') !!}
-                                {!! Form::date('date', \Carbon\Carbon::now(), ['class' => 'form-control', 'required']) !!}
-                            </div>
-                        </div>
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box box-primary">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Create Final Product Sale</h3>
+                    </div>
+                    <div class="box-body">
+                        {!! Form::open([
+                            'url' => action([\App\Http\Controllers\FinalProductSellController::class, 'store']),
+                            'method' => 'post',
+                            'id' => 'final_product_sell_form',
+                        ]) !!}
 
-                        <!-- Business Location -->
-                        <div class="col-sm-4">
-                            <div class="form-group">
-                                {!! Form::label('location_id', __('purchase.business_location') . ':*') !!}
-                                @show_tooltip(__('tooltip.purchase_location'))
-                                {!! Form::select('location_id', $business_locations, null, ['class' => 'form-control select2', 'placeholder' => __('messages.please_select'), 'required'], $bl_attributes) !!}
+                        <div class="row">
+                            <!-- Date Field -->
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    {!! Form::label('date', __('messages.date') . ':*') !!}
+                                    {!! Form::date('date', \Carbon\Carbon::now(), ['class' => 'form-control', 'required']) !!}
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- Customer Selection -->
-                        <div class="col-sm-4">
-                            <div class="form-group">
-                                {!! Form::label('contact_id', __('contact.customer') . ':*') !!}
-                                <div class="input-group">
-                                    <span class="input-group-addon">
-                                        <i class="fa fa-user"></i>
-                                    </span>
-                                    <input type="hidden" id="default_customer_id" value="{{ $walk_in_customer['id'] }}">
-                                    <input type="hidden" id="default_customer_name" value="{{ $walk_in_customer['name'] }}">
-                                    {!! Form::select('contact_id', [], null, ['class' => 'form-control mousetrap', 'id' => 'customer_id', 'placeholder' => 'Enter Customer name / phone', 'required']) !!}
-                                    <span class="input-group-btn">
-                                        <button type="button" class="btn btn-default bg-white btn-flat add_new_customer" data-name="">
-                                            <i class="fa fa-plus-circle text-primary fa-lg"></i>
-                                        </button>
-                                    </span>
+                            <!-- Business Location -->
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    {!! Form::label('location_id', __('purchase.business_location') . ':*') !!}
+                                    @show_tooltip(__('tooltip.purchase_location'))
+                                    {!! Form::select(
+                                        'location_id',
+                                        $business_locations,
+                                        null,
+                                        ['class' => 'form-control select2', 'placeholder' => __('messages.please_select'), 'required'],
+                                        $bl_attributes,
+                                    ) !!}
+                                </div>
+                            </div>
+
+                            <!-- Customer Selection -->
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    {!! Form::label('contact_id', __('contact.customer') . ':*') !!}
+                                    <div class="input-group">
+                                        <span class="input-group-addon">
+                                            <i class="fa fa-user"></i>
+                                        </span>
+                                        <input type="hidden" id="default_customer_id"
+                                            value="{{ $walk_in_customer['id'] }}">
+                                        <input type="hidden" id="default_customer_name"
+                                            value="{{ $walk_in_customer['name'] }}">
+                                        {!! Form::select('contact_id', [], null, [
+                                            'class' => 'form-control mousetrap',
+                                            'id' => 'customer_id',
+                                            'placeholder' => 'Enter Customer name / phone',
+                                            'required',
+                                        ]) !!}
+                                        <span class="input-group-btn">
+                                            <button type="button"
+                                                class="btn btn-default bg-white btn-flat add_new_customer" data-name="">
+                                                <i class="fa fa-plus-circle text-primary fa-lg"></i>
+                                            </button>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Product rows container -->
-                    <div id="product_rows">
-                        <div class="product-row" data-row="0">
-                            <div class="row">
-                                <!-- Product Temperature -->
-                                <div class="col-sm-4">
-                                    <div class="form-group">
-                                        {!! Form::label('product_temperature[]', __('lang_v1.product_temperature') . ':*') !!}
-                                        <div>
-                                            {!! Form::select('product_temperature[]', $product_temperatures, null, [
-                                                'class' => 'form-control select2 product-temperature',
-                                                'placeholder' => __('messages.please_select'),
-                                                'required'
+                        <!-- Product rows container -->
+                        <div id="product_rows">
+                            <div class="product-row" data-row="0">
+                                <div class="row">
+                                    <!-- Product Temperature -->
+                                    <div class="col-sm-4">
+                                        <div class="form-group">
+                                            {!! Form::label('product_temperature[]', __('lang_v1.product_temperature') . ':*') !!}
+                                            <div>
+                                                {!! Form::select('product_temperature[]', $product_temperatures, null, [
+                                                    'class' => 'form-control select2 product-temperature',
+                                                    'placeholder' => __('messages.please_select'),
+                                                    'required',
+                                                ]) !!}
+                                                <small class="available-qty-text text-muted"></small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Quantity (User Input) -->
+                                    <div class="col-sm-4">
+                                        <div class="form-group">
+                                            {!! Form::label('quantity[]', __('lang_v1.quantity') . ':*') !!}
+                                            {!! Form::number('quantity[]', null, [
+                                                'class' => 'form-control quantity-input',
+                                                'required',
+                                                'min' => '0.01',
+                                                'step' => '0.01',
                                             ]) !!}
-                                            <small class="available-qty-text text-muted"></small>
+                                        </div>
+                                    </div>
+
+                                    <!-- Amount -->
+                                    <div class="col-sm-4">
+                                        <div class="form-group">
+                                            {!! Form::label('amount[]', __('lang_v1.amount') . ':*') !!}
+                                            {!! Form::number('amount[]', null, [
+                                                'class' => 'form-control amount-input',
+                                                'required',
+                                                'min' => '0.01',
+                                                'step' => '0.01',
+                                            ]) !!}
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
 
-                                <!-- Quantity (User Input) -->
-                                <div class="col-sm-4">
-                                    <div class="form-group">
-                                        {!! Form::label('quantity[]', __('lang_v1.quantity') . ':*') !!}
-                                        {!! Form::number('quantity[]', null, [
-                                            'class' => 'form-control quantity-input',
-                                            'required',
-                                            'min' => '0.01',
-                                            'step' => '0.01'
-                                        ]) !!}
-                                    </div>
-                                </div>
+                        <!-- Add More Button -->
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <button type="button" class="btn btn-success" id="add_more_btn">
+                                    <i class="fa fa-plus"></i> Add More
+                                </button>
+                            </div>
+                        </div>
 
-                                <!-- Amount -->
-                                <div class="col-sm-4">
-                                    <div class="form-group">
-                                        {!! Form::label('amount[]', __('lang_v1.amount') . ':*') !!}
-                                        {!! Form::number('amount[]', null, [
-                                            'class' => 'form-control amount-input',
-                                            'required',
-                                            'min' => '0.01',
-                                            'step' => '0.01'
-                                        ]) !!}
-                                    </div>
+                        <!-- Grand Total -->
+                        <div class="row" style="margin-top: 20px;">
+                            <div class="col-sm-offset-8 col-sm-4">
+                                <div class="form-group">
+                                    {!! Form::label('grand_total', __('lang_v1.grand_total') . ':') !!}
+                                    {!! Form::text('grand_total', '0.00', [
+                                        'class' => 'form-control',
+                                        'readonly',
+                                        'id' => 'grand_total',
+                                    ]) !!}
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Add More Button -->
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <button type="button" class="btn btn-success" id="add_more_btn">
-                                <i class="fa fa-plus"></i> Add More
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Grand Total -->
-                    <div class="row" style="margin-top: 20px;">
-                        <div class="col-sm-offset-8 col-sm-4">
-                            <div class="form-group">
-                                {!! Form::label('grand_total', __('lang_v1.grand_total') . ':') !!}
-                                {!! Form::text('grand_total', '0.00', [
-                                    'class' => 'form-control',
-                                    'readonly',
-                                    'id' => 'grand_total'
-                                ]) !!}
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <button type="submit" class="btn btn-primary pull-right">@lang('messages.save')</button>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <button type="submit" class="btn btn-primary pull-right">@lang('messages.save')</button>
-                        </div>
+                        {!! Form::close() !!}
                     </div>
-
-                    {!! Form::close() !!}
                 </div>
             </div>
         </div>
-    </div>
 
-    {{-- Contact add modal --}}
-    <div class="modal fade contact_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel">
-        @include('contact.create', ['quick_add' => true])
-    </div>
-</section>
+        {{-- Contact add modal --}}
+        <div class="modal fade contact_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel">
+            @include('contact.create', ['quick_add' => true])
+        </div>
+    </section>
 @endsection
 
 @section('javascript')
@@ -151,6 +169,7 @@ const translations = {
     quantity: '@lang("lang_v1.quantity")',
     amount: '@lang("lang_v1.amount")'
 };
+
 $(document).ready(function() {
     // Initialize Select2
     $('.select2').select2();
@@ -181,6 +200,7 @@ $(document).ready(function() {
                         $quantityText.text('Available: ' + response.data.temp_quantity);
                         // Reset quantity field
                         $row.find('.quantity-input').val('');
+                        calculateGrandTotal(); // Recalculate total when quantity is reset
                     } else {
                         toastr.error(response.message);
                         $quantityText.text('');
@@ -211,7 +231,27 @@ $(document).ready(function() {
         // Update available quantity display
         const remainingQty = availableQty - enteredQty;
         $row.find('.available-qty-text').text('Available: ' + remainingQty);
+        
+        // Calculate grand total when quantity changes
+        calculateGrandTotal();
     });
+
+    // Calculate grand total when quantity or amount changes
+    $(document).on('input', '.quantity-input, .amount-input', function() {
+        calculateGrandTotal();
+    });
+
+    // Calculate grand total function
+    function calculateGrandTotal() {
+        let total = 0;
+        $('.product-row').each(function() {
+            const quantity = parseFloat($(this).find('.quantity-input').val()) || 0;
+            const amount = parseFloat($(this).find('.amount-input').val()) || 0;
+            const rowTotal = quantity * amount;
+            total += rowTotal;
+        });
+        $('#grand_total').val(total.toFixed(2));
+    }
 
     // Add more button handler
     let rowCount = 0;
@@ -266,6 +306,9 @@ $(document).ready(function() {
         newRow.find('.select2').select2({
             width: '100%'
         });
+        
+        // Recalculate grand total after adding new row
+        calculateGrandTotal();
     });
 
     // Helper function to generate temperature options
@@ -284,20 +327,6 @@ $(document).ready(function() {
         $(this).closest('.product-row').remove();
         calculateGrandTotal();
     });
-
-    // Calculate grand total when amount changes
-    $(document).on('input', '.amount-input', function() {
-        calculateGrandTotal();
-    });
-
-    // Calculate grand total function
-    function calculateGrandTotal() {
-        let total = 0;
-        $('.amount-input').each(function() {
-            total += parseFloat($(this).val()) || 0;
-        });
-        $('#grand_total').val(total.toFixed(2));
-    }
 
     // Form validation
     $('#final_product_sell_form').on('submit', function(e) {
@@ -325,6 +354,9 @@ $(document).ready(function() {
             e.preventDefault();
             return false;
         }
+
+        // Recalculate grand total before submission
+        calculateGrandTotal();
     });
 
     // Initialize customer select function

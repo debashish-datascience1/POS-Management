@@ -5,6 +5,7 @@ use App\Http\Controllers\AccountReportsController;
 use App\Http\Controllers\AccountTypeController;
 // use App\Http\Controllers\Auth;
 use App\Http\Controllers\BackUpController;
+use App\Http\Controllers\StockController;
 use App\Http\Controllers\BarcodeController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\BusinessController;
@@ -258,7 +259,9 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/sells/quotations', 'SellController@getQuotations');
     Route::get('/sells/draft-dt', 'SellController@getDraftDatables');
     Route::resource('sells', 'SellController');
+    Route::get('sells/{id}/edit', [SellPosController::class, 'edit'])->name('sells.edit');
     Route::post('sells/store', [\App\Http\Controllers\SellController::class, 'store'])->name('sells.store');
+    Route::put('sells/update', [\App\Http\Controllers\SellController::class, 'update'])->name('sells.update');
     Route::get('/sells/copy-quotation/{id}', [SellPosController::class, 'copyQuotation']);
 
     Route::post('/import-purchase-products', [PurchaseController::class, 'importPurchaseProducts']);
@@ -525,6 +528,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('regenerate', [Install\ModulesController::class, 'regenerate']);
 
     Route::resource('warranties', WarrantyController::class);
+    Route::resource('stocks', StockController::class);
 
     Route::resource('dashboard-configurator', DashboardConfiguratorController::class)
     ->only(['edit', 'update']);

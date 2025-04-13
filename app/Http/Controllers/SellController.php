@@ -1096,191 +1096,328 @@ class SellController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
+    // public function edit($id)
+    // {
+    //     if (! auth()->user()->can('direct_sell.update') && ! auth()->user()->can('so.update')) {
+    //         abort(403, 'Unauthorized action.');
+    //     }
+
+    //     //Check if the transaction can be edited or not.
+    //     // $edit_days = request()->session()->get('business.transaction_edit_days');
+    //     // if (! $this->transactionUtil->canBeEdited($id, $edit_days)) {
+    //     //     return back()
+    //     //         ->with('status', ['success' => 0,
+    //     //             'msg' => __('messages.transaction_edit_not_allowed', ['days' => $edit_days]), ]);
+    //     // }
+
+    //     // //Check if return exist then not allowed
+    //     // if ($this->transactionUtil->isReturnExist($id)) {
+    //     //     return back()->with('status', ['success' => 0,
+    //     //         'msg' => __('lang_v1.return_exist'), ]);
+    //     // }
+
+    //     $business_id = request()->session()->get('user.business_id');
+
+    //     $business_details = $this->businessUtil->getDetails($business_id);
+    //     $taxes = TaxRate::forBusinessDropdown($business_id, true, true);
+
+    //     $transaction = Transaction::where('business_id', $business_id)
+    //                         ->with(['price_group', 'types_of_service', 'media', 'media.uploaded_by_user'])
+    //                         ->whereIn('type', ['sell', 'sales_order'])
+    //                         ->findorfail($id);
+
+    //     if ($transaction->type == 'sales_order' && ! auth()->user()->can('so.update')) {
+    //         abort(403, 'Unauthorized action.');
+    //     }
+
+    //     $location_id = $transaction->location_id;
+    //     $location_printer_type = BusinessLocation::find($location_id)->receipt_printer_type;
+
+    //     $sell_details = TransactionSellLine::join(
+    //                         'products AS p',
+    //                         'transaction_sell_lines.product_id',
+    //                         '=',
+    //                         'p.id'
+    //                     )
+    //                     ->join(
+    //                         'variations AS variations',
+    //                         'transaction_sell_lines.variation_id',
+    //                         '=',
+    //                         'variations.id'
+    //                     )
+    //                     ->join(
+    //                         'product_variations AS pv',
+    //                         'variations.product_variation_id',
+    //                         '=',
+    //                         'pv.id'
+    //                     )
+    //                     ->leftjoin('variation_location_details AS vld', function ($join) use ($location_id) {
+    //                         $join->on('variations.id', '=', 'vld.variation_id')
+    //                             ->where('vld.location_id', '=', $location_id);
+    //                     })
+    //                     ->leftjoin('units', 'units.id', '=', 'p.unit_id')
+    //                     ->leftjoin('units as u', 'p.secondary_unit_id', '=', 'u.id')
+    //                     ->where('transaction_sell_lines.transaction_id', $id)
+    //                     ->with(['warranties', 'so_line'])
+    //                     ->select(
+    //                         DB::raw("IF(pv.is_dummy = 0, CONCAT(p.name, ' (', pv.name, ':',variations.name, ')'), p.name) AS product_name"),
+    //                         'p.id as product_id',
+    //                         'p.enable_stock',
+    //                         'p.name as product_actual_name',
+    //                         'p.type as product_type',
+    //                         'pv.name as product_variation_name',
+    //                         'pv.is_dummy as is_dummy',
+    //                         'variations.name as variation_name',
+    //                         'variations.sub_sku',
+    //                         'p.barcode_type',
+    //                         'p.enable_sr_no',
+    //                         'variations.id as variation_id',
+    //                         'units.short_name as unit',
+    //                         'units.allow_decimal as unit_allow_decimal',
+    //                         'u.short_name as second_unit',
+    //                         'transaction_sell_lines.secondary_unit_quantity',
+    //                         'transaction_sell_lines.tax_id as tax_id',
+    //                         'transaction_sell_lines.item_tax as item_tax',
+    //                         'transaction_sell_lines.unit_price as default_sell_price',
+    //                         'transaction_sell_lines.unit_price_inc_tax as sell_price_inc_tax',
+    //                         'transaction_sell_lines.unit_price_before_discount as unit_price_before_discount',
+    //                         'transaction_sell_lines.id as transaction_sell_lines_id',
+    //                         'transaction_sell_lines.id',
+    //                         'transaction_sell_lines.quantity as quantity_ordered',
+    //                         'transaction_sell_lines.sell_line_note as sell_line_note',
+    //                         'transaction_sell_lines.parent_sell_line_id',
+    //                         'transaction_sell_lines.lot_no_line_id',
+    //                         'transaction_sell_lines.line_discount_type',
+    //                         'transaction_sell_lines.line_discount_amount',
+    //                         'transaction_sell_lines.res_service_staff_id',
+    //                         'units.id as unit_id',
+    //                         'transaction_sell_lines.sub_unit_id',
+    //                         'transaction_sell_lines.so_line_id',
+    //                         DB::raw('vld.qty_available + transaction_sell_lines.quantity AS qty_available')
+    //                     )
+    //                     ->get();
+
+    //     if (! empty($sell_details)) {
+    //         foreach ($sell_details as $key => $value) {
+    //             //If modifier or combo sell line then unset
+    //             if (! empty($sell_details[$key]->parent_sell_line_id)) {
+    //                 unset($sell_details[$key]);
+    //             } else {
+    //                 if ($transaction->status != 'final') {
+    //                     $actual_qty_avlbl = $value->qty_available - $value->quantity_ordered;
+    //                     $sell_details[$key]->qty_available = $actual_qty_avlbl;
+    //                     $value->qty_available = $actual_qty_avlbl;
+    //                 }
+
+    //                 $sell_details[$key]->formatted_qty_available = $this->productUtil->num_f($value->qty_available, false, null, true);
+    //                 $lot_numbers = [];
+    //                 if (request()->session()->get('business.enable_lot_number') == 1) {
+    //                     $lot_number_obj = $this->transactionUtil->getLotNumbersFromVariation($value->variation_id, $business_id, $location_id);
+    //                     foreach ($lot_number_obj as $lot_number) {
+    //                         //If lot number is selected added ordered quantity to lot quantity available
+    //                         if ($value->lot_no_line_id == $lot_number->purchase_line_id) {
+    //                             $lot_number->qty_available += $value->quantity_ordered;
+    //                         }
+
+    //                         $lot_number->qty_formated = $this->transactionUtil->num_f($lot_number->qty_available);
+    //                         $lot_numbers[] = $lot_number;
+    //                     }
+    //                 }
+    //                 $sell_details[$key]->lot_numbers = $lot_numbers;
+
+    //                 if (! empty($value->sub_unit_id)) {
+    //                     $value = $this->productUtil->changeSellLineUnit($business_id, $value);
+    //                     $sell_details[$key] = $value;
+    //                 }
+
+    //                 if ($this->transactionUtil->isModuleEnabled('modifiers')) {
+    //                     //Add modifier details to sel line details
+    //                     $sell_line_modifiers = TransactionSellLine::where('parent_sell_line_id', $sell_details[$key]->transaction_sell_lines_id)
+    //                         ->where('children_type', 'modifier')
+    //                         ->get();
+    //                     $modifiers_ids = [];
+    //                     if (count($sell_line_modifiers) > 0) {
+    //                         $sell_details[$key]->modifiers = $sell_line_modifiers;
+    //                         foreach ($sell_line_modifiers as $sell_line_modifier) {
+    //                             $modifiers_ids[] = $sell_line_modifier->variation_id;
+    //                         }
+    //                     }
+    //                     $sell_details[$key]->modifiers_ids = $modifiers_ids;
+
+    //                     //add product modifier sets for edit
+    //                     $this_product = Product::find($sell_details[$key]->product_id);
+    //                     if (count($this_product->modifier_sets) > 0) {
+    //                         $sell_details[$key]->product_ms = $this_product->modifier_sets;
+    //                     }
+    //                 }
+
+    //                 //Get details of combo items
+    //                 if ($sell_details[$key]->product_type == 'combo') {
+    //                     $sell_line_combos = TransactionSellLine::where('parent_sell_line_id', $sell_details[$key]->transaction_sell_lines_id)
+    //                         ->where('children_type', 'combo')
+    //                         ->get()
+    //                         ->toArray();
+    //                     if (! empty($sell_line_combos)) {
+    //                         $sell_details[$key]->combo_products = $sell_line_combos;
+    //                     }
+
+    //                     //calculate quantity available if combo product
+    //                     $combo_variations = [];
+    //                     foreach ($sell_line_combos as $combo_line) {
+    //                         $combo_variations[] = [
+    //                             'variation_id' => $combo_line['variation_id'],
+    //                             'quantity' => $combo_line['quantity'] / $sell_details[$key]->quantity_ordered,
+    //                             'unit_id' => null,
+    //                         ];
+    //                     }
+    //                     $sell_details[$key]->qty_available =
+    //                     $this->productUtil->calculateComboQuantity($location_id, $combo_variations);
+
+    //                     if ($transaction->status == 'final') {
+    //                         $sell_details[$key]->qty_available = $sell_details[$key]->qty_available + $sell_details[$key]->quantity_ordered;
+    //                     }
+
+    //                     $sell_details[$key]->formatted_qty_available = $this->productUtil->num_f($sell_details[$key]->qty_available, false, null, true);
+    //                 }
+    //             }
+    //         }
+    //     }
+
+    //     $commsn_agnt_setting = $business_details->sales_cmsn_agnt;
+    //     $commission_agent = [];
+    //     if ($commsn_agnt_setting == 'user') {
+    //         $commission_agent = User::forDropdown($business_id);
+    //     } elseif ($commsn_agnt_setting == 'cmsn_agnt') {
+    //         $commission_agent = User::saleCommissionAgentsDropdown($business_id);
+    //     }
+
+    //     $types = [];
+    //     if (auth()->user()->can('supplier.create')) {
+    //         $types['supplier'] = __('report.supplier');
+    //     }
+    //     if (auth()->user()->can('customer.create')) {
+    //         $types['customer'] = __('report.customer');
+    //     }
+    //     if (auth()->user()->can('supplier.create') && auth()->user()->can('customer.create')) {
+    //         $types['both'] = __('lang_v1.both_supplier_customer');
+    //     }
+    //     $customer_groups = CustomerGroup::forDropdown($business_id);
+
+    //     $transaction->transaction_date = $this->transactionUtil->format_date($transaction->transaction_date, true);
+
+    //     $pos_settings = empty($business_details->pos_settings) ? $this->businessUtil->defaultPosSettings() : json_decode($business_details->pos_settings, true);
+
+    //     $waiters = [];
+    //     if ($this->productUtil->isModuleEnabled('service_staff') && ! empty($pos_settings['inline_service_staff'])) {
+    //         $waiters = $this->productUtil->serviceStaffDropdown($business_id);
+    //     }
+
+    //     $invoice_schemes = [];
+    //     $default_invoice_schemes = null;
+
+    //     if ($transaction->status == 'draft') {
+    //         $invoice_schemes = InvoiceScheme::forDropdown($business_id);
+    //         $default_invoice_schemes = InvoiceScheme::getDefault($business_id);
+    //     }
+
+    //     $redeem_details = [];
+    //     if (request()->session()->get('business.enable_rp') == 1) {
+    //         $redeem_details = $this->transactionUtil->getRewardRedeemDetails($business_id, $transaction->contact_id);
+
+    //         $redeem_details['points'] += $transaction->rp_redeemed;
+    //         $redeem_details['points'] -= $transaction->rp_earned;
+    //     }
+
+    //     $edit_discount = auth()->user()->can('edit_product_discount_from_sale_screen');
+    //     $edit_price = auth()->user()->can('edit_product_price_from_sale_screen');
+
+    //     //Accounts
+    //     $accounts = [];
+    //     if ($this->moduleUtil->isModuleEnabled('account')) {
+    //         $accounts = Account::forDropdown($business_id, true, false);
+    //     }
+
+    //     $shipping_statuses = $this->transactionUtil->shipping_statuses();
+
+    //     $common_settings = session()->get('business.common_settings');
+    //     $is_warranty_enabled = ! empty($common_settings['enable_product_warranty']) ? true : false;
+    //     $warranties = $is_warranty_enabled ? Warranty::forDropdown($business_id) : [];
+
+    //     $statuses = Transaction::sell_statuses();
+
+    //     $is_order_request_enabled = false;
+    //     $is_crm = $this->moduleUtil->isModuleInstalled('Crm');
+    //     if ($is_crm) {
+    //         $crm_settings = Business::where('id', auth()->user()->business_id)
+    //                             ->value('crm_settings');
+    //         $crm_settings = ! empty($crm_settings) ? json_decode($crm_settings, true) : [];
+
+    //         if (! empty($crm_settings['enable_order_request'])) {
+    //             $is_order_request_enabled = true;
+    //         }
+    //     }
+
+    //     $sales_orders = [];
+    //     if (! empty($pos_settings['enable_sales_order']) || $is_order_request_enabled) {
+    //         $sales_orders = Transaction::where('business_id', $business_id)
+    //                             ->where('type', 'sales_order')
+    //                             ->where('contact_id', $transaction->contact_id)
+    //                             ->where(function ($q) use ($transaction) {
+    //                                 $q->where('status', '!=', 'completed');
+
+    //                                 if (! empty($transaction->sales_order_ids)) {
+    //                                     $q->orWhereIn('id', $transaction->sales_order_ids);
+    //                                 }
+    //                             })
+    //                             ->pluck('invoice_no', 'id');
+    //     }
+
+    //     $payment_types = $this->transactionUtil->payment_types($transaction->location_id, false, $business_id);
+
+    //     $payment_lines = $this->transactionUtil->getPaymentDetails($id);
+    //     //If no payment lines found then add dummy payment line.
+    //     if (empty($payment_lines)) {
+    //         $payment_lines[] = $this->dummyPaymentLine;
+    //     }
+
+    //     $change_return = $this->dummyPaymentLine;
+
+    //     $customer_due = $this->transactionUtil->getContactDue($transaction->contact_id, $transaction->business_id);
+
+    //     $customer_due = $customer_due != 0 ? $this->transactionUtil->num_f($customer_due, true) : '';
+
+    //     //Added check because $users is of no use if enable_contact_assign if false
+    //     $users = config('constants.enable_contact_assign') ? User::forDropdown($business_id, false, false, false, true) : [];
+
+    //     return view('sell.edit')
+    //         ->with(compact('business_details', 'taxes', 'sell_details', 'transaction', 'commission_agent', 'types', 'customer_groups', 'pos_settings', 'waiters', 'invoice_schemes', 'default_invoice_schemes', 'redeem_details', 'edit_discount', 'edit_price', 'shipping_statuses', 'warranties', 'statuses', 'sales_orders', 'payment_types', 'accounts', 'payment_lines', 'change_return', 'is_order_request_enabled', 'customer_due', 'users'));
+    // }
+
     public function edit($id)
     {
-        if (! auth()->user()->can('direct_sell.update') && ! auth()->user()->can('so.update')) {
+        // Check for user permission
+        if (!auth()->user()->can('sell.update')) {
             abort(403, 'Unauthorized action.');
         }
 
-        //Check if the transaction can be edited or not.
-        // $edit_days = request()->session()->get('business.transaction_edit_days');
-        // if (! $this->transactionUtil->canBeEdited($id, $edit_days)) {
-        //     return back()
-        //         ->with('status', ['success' => 0,
-        //             'msg' => __('messages.transaction_edit_not_allowed', ['days' => $edit_days]), ]);
-        // }
-
-        // //Check if return exist then not allowed
-        // if ($this->transactionUtil->isReturnExist($id)) {
-        //     return back()->with('status', ['success' => 0,
-        //         'msg' => __('lang_v1.return_exist'), ]);
-        // }
-
         $business_id = request()->session()->get('user.business_id');
-
+        
+        // Get the sell record with its items
+        $sell = Sell::with(['sellItems'])->findOrFail($id);
+        
+        // Get all the data needed for the edit form (similar to create method)
+        $walk_in_customer = $this->contactUtil->getWalkInCustomer($business_id);
         $business_details = $this->businessUtil->getDetails($business_id);
         $taxes = TaxRate::forBusinessDropdown($business_id, true, true);
 
-        $transaction = Transaction::where('business_id', $business_id)
-                            ->with(['price_group', 'types_of_service', 'media', 'media.uploaded_by_user'])
-                            ->whereIn('type', ['sell', 'sales_order'])
-                            ->findorfail($id);
+        $business_locations = BusinessLocation::forDropdown($business_id, false, true);
+        $bl_attributes = $business_locations['attributes'];
+        $business_locations = $business_locations['locations'];
 
-        if ($transaction->type == 'sales_order' && ! auth()->user()->can('so.update')) {
-            abort(403, 'Unauthorized action.');
-        }
-
-        $location_id = $transaction->location_id;
-        $location_printer_type = BusinessLocation::find($location_id)->receipt_printer_type;
-
-        $sell_details = TransactionSellLine::join(
-                            'products AS p',
-                            'transaction_sell_lines.product_id',
-                            '=',
-                            'p.id'
-                        )
-                        ->join(
-                            'variations AS variations',
-                            'transaction_sell_lines.variation_id',
-                            '=',
-                            'variations.id'
-                        )
-                        ->join(
-                            'product_variations AS pv',
-                            'variations.product_variation_id',
-                            '=',
-                            'pv.id'
-                        )
-                        ->leftjoin('variation_location_details AS vld', function ($join) use ($location_id) {
-                            $join->on('variations.id', '=', 'vld.variation_id')
-                                ->where('vld.location_id', '=', $location_id);
-                        })
-                        ->leftjoin('units', 'units.id', '=', 'p.unit_id')
-                        ->leftjoin('units as u', 'p.secondary_unit_id', '=', 'u.id')
-                        ->where('transaction_sell_lines.transaction_id', $id)
-                        ->with(['warranties', 'so_line'])
-                        ->select(
-                            DB::raw("IF(pv.is_dummy = 0, CONCAT(p.name, ' (', pv.name, ':',variations.name, ')'), p.name) AS product_name"),
-                            'p.id as product_id',
-                            'p.enable_stock',
-                            'p.name as product_actual_name',
-                            'p.type as product_type',
-                            'pv.name as product_variation_name',
-                            'pv.is_dummy as is_dummy',
-                            'variations.name as variation_name',
-                            'variations.sub_sku',
-                            'p.barcode_type',
-                            'p.enable_sr_no',
-                            'variations.id as variation_id',
-                            'units.short_name as unit',
-                            'units.allow_decimal as unit_allow_decimal',
-                            'u.short_name as second_unit',
-                            'transaction_sell_lines.secondary_unit_quantity',
-                            'transaction_sell_lines.tax_id as tax_id',
-                            'transaction_sell_lines.item_tax as item_tax',
-                            'transaction_sell_lines.unit_price as default_sell_price',
-                            'transaction_sell_lines.unit_price_inc_tax as sell_price_inc_tax',
-                            'transaction_sell_lines.unit_price_before_discount as unit_price_before_discount',
-                            'transaction_sell_lines.id as transaction_sell_lines_id',
-                            'transaction_sell_lines.id',
-                            'transaction_sell_lines.quantity as quantity_ordered',
-                            'transaction_sell_lines.sell_line_note as sell_line_note',
-                            'transaction_sell_lines.parent_sell_line_id',
-                            'transaction_sell_lines.lot_no_line_id',
-                            'transaction_sell_lines.line_discount_type',
-                            'transaction_sell_lines.line_discount_amount',
-                            'transaction_sell_lines.res_service_staff_id',
-                            'units.id as unit_id',
-                            'transaction_sell_lines.sub_unit_id',
-                            'transaction_sell_lines.so_line_id',
-                            DB::raw('vld.qty_available + transaction_sell_lines.quantity AS qty_available')
-                        )
-                        ->get();
-
-        if (! empty($sell_details)) {
-            foreach ($sell_details as $key => $value) {
-                //If modifier or combo sell line then unset
-                if (! empty($sell_details[$key]->parent_sell_line_id)) {
-                    unset($sell_details[$key]);
-                } else {
-                    if ($transaction->status != 'final') {
-                        $actual_qty_avlbl = $value->qty_available - $value->quantity_ordered;
-                        $sell_details[$key]->qty_available = $actual_qty_avlbl;
-                        $value->qty_available = $actual_qty_avlbl;
-                    }
-
-                    $sell_details[$key]->formatted_qty_available = $this->productUtil->num_f($value->qty_available, false, null, true);
-                    $lot_numbers = [];
-                    if (request()->session()->get('business.enable_lot_number') == 1) {
-                        $lot_number_obj = $this->transactionUtil->getLotNumbersFromVariation($value->variation_id, $business_id, $location_id);
-                        foreach ($lot_number_obj as $lot_number) {
-                            //If lot number is selected added ordered quantity to lot quantity available
-                            if ($value->lot_no_line_id == $lot_number->purchase_line_id) {
-                                $lot_number->qty_available += $value->quantity_ordered;
-                            }
-
-                            $lot_number->qty_formated = $this->transactionUtil->num_f($lot_number->qty_available);
-                            $lot_numbers[] = $lot_number;
-                        }
-                    }
-                    $sell_details[$key]->lot_numbers = $lot_numbers;
-
-                    if (! empty($value->sub_unit_id)) {
-                        $value = $this->productUtil->changeSellLineUnit($business_id, $value);
-                        $sell_details[$key] = $value;
-                    }
-
-                    if ($this->transactionUtil->isModuleEnabled('modifiers')) {
-                        //Add modifier details to sel line details
-                        $sell_line_modifiers = TransactionSellLine::where('parent_sell_line_id', $sell_details[$key]->transaction_sell_lines_id)
-                            ->where('children_type', 'modifier')
-                            ->get();
-                        $modifiers_ids = [];
-                        if (count($sell_line_modifiers) > 0) {
-                            $sell_details[$key]->modifiers = $sell_line_modifiers;
-                            foreach ($sell_line_modifiers as $sell_line_modifier) {
-                                $modifiers_ids[] = $sell_line_modifier->variation_id;
-                            }
-                        }
-                        $sell_details[$key]->modifiers_ids = $modifiers_ids;
-
-                        //add product modifier sets for edit
-                        $this_product = Product::find($sell_details[$key]->product_id);
-                        if (count($this_product->modifier_sets) > 0) {
-                            $sell_details[$key]->product_ms = $this_product->modifier_sets;
-                        }
-                    }
-
-                    //Get details of combo items
-                    if ($sell_details[$key]->product_type == 'combo') {
-                        $sell_line_combos = TransactionSellLine::where('parent_sell_line_id', $sell_details[$key]->transaction_sell_lines_id)
-                            ->where('children_type', 'combo')
-                            ->get()
-                            ->toArray();
-                        if (! empty($sell_line_combos)) {
-                            $sell_details[$key]->combo_products = $sell_line_combos;
-                        }
-
-                        //calculate quantity available if combo product
-                        $combo_variations = [];
-                        foreach ($sell_line_combos as $combo_line) {
-                            $combo_variations[] = [
-                                'variation_id' => $combo_line['variation_id'],
-                                'quantity' => $combo_line['quantity'] / $sell_details[$key]->quantity_ordered,
-                                'unit_id' => null,
-                            ];
-                        }
-                        $sell_details[$key]->qty_available =
-                        $this->productUtil->calculateComboQuantity($location_id, $combo_variations);
-
-                        if ($transaction->status == 'final') {
-                            $sell_details[$key]->qty_available = $sell_details[$key]->qty_available + $sell_details[$key]->quantity_ordered;
-                        }
-
-                        $sell_details[$key]->formatted_qty_available = $this->productUtil->num_f($sell_details[$key]->qty_available, false, null, true);
-                    }
-                }
-            }
+        $default_location = null;
+        foreach ($business_locations as $loc_id => $name) {
+            $default_location = BusinessLocation::findOrFail($loc_id);
+            break;
         }
 
         $commsn_agnt_setting = $business_details->sales_cmsn_agnt;
@@ -1301,96 +1438,137 @@ class SellController extends Controller
         if (auth()->user()->can('supplier.create') && auth()->user()->can('customer.create')) {
             $types['both'] = __('lang_v1.both_supplier_customer');
         }
+
         $customer_groups = CustomerGroup::forDropdown($business_id);
-
-        $transaction->transaction_date = $this->transactionUtil->format_date($transaction->transaction_date, true);
-
+        $payment_types = $this->transactionUtil->payment_types(null, true, $business_id);
+        $price_groups = SellingPriceGroup::forDropdown($business_id);
+        $default_datetime = $this->businessUtil->format_date('now', true);
         $pos_settings = empty($business_details->pos_settings) ? $this->businessUtil->defaultPosSettings() : json_decode($business_details->pos_settings, true);
-
-        $waiters = [];
-        if ($this->productUtil->isModuleEnabled('service_staff') && ! empty($pos_settings['inline_service_staff'])) {
-            $waiters = $this->productUtil->serviceStaffDropdown($business_id);
-        }
-
-        $invoice_schemes = [];
-        $default_invoice_schemes = null;
-
-        if ($transaction->status == 'draft') {
-            $invoice_schemes = InvoiceScheme::forDropdown($business_id);
-            $default_invoice_schemes = InvoiceScheme::getDefault($business_id);
-        }
-
-        $redeem_details = [];
-        if (request()->session()->get('business.enable_rp') == 1) {
-            $redeem_details = $this->transactionUtil->getRewardRedeemDetails($business_id, $transaction->contact_id);
-
-            $redeem_details['points'] += $transaction->rp_redeemed;
-            $redeem_details['points'] -= $transaction->rp_earned;
-        }
-
-        $edit_discount = auth()->user()->can('edit_product_discount_from_sale_screen');
-        $edit_price = auth()->user()->can('edit_product_price_from_sale_screen');
-
-        //Accounts
-        $accounts = [];
-        if ($this->moduleUtil->isModuleEnabled('account')) {
-            $accounts = Account::forDropdown($business_id, true, false);
-        }
-
+        
+        $invoice_schemes = InvoiceScheme::forDropdown($business_id);
+        $default_invoice_schemes = InvoiceScheme::getDefault($business_id);
         $shipping_statuses = $this->transactionUtil->shipping_statuses();
 
-        $common_settings = session()->get('business.common_settings');
-        $is_warranty_enabled = ! empty($common_settings['enable_product_warranty']) ? true : false;
-        $warranties = $is_warranty_enabled ? Warranty::forDropdown($business_id) : [];
+        // Get the jar and packet items separately
+        $jar_items = $sell->sellItems->where('item_type', 'jar')->values();
+        $packet_items = $sell->sellItems->where('item_type', 'packet')->values();
 
-        $statuses = Transaction::sell_statuses();
+        $jarOptions = ['5L', '5L(sp)', '10L', '10L(sp)', '20L', '20L(sp)'];
+        $packetOptions = ['100ML', '100ML(sp)', '200ML', '200ML(sp)', '500ML', '500ML(sp)']; 
 
-        $is_order_request_enabled = false;
-        $is_crm = $this->moduleUtil->isModuleInstalled('Crm');
-        if ($is_crm) {
-            $crm_settings = Business::where('id', auth()->user()->business_id)
-                                ->value('crm_settings');
-            $crm_settings = ! empty($crm_settings) ? json_decode($crm_settings, true) : [];
-
-            if (! empty($crm_settings['enable_order_request'])) {
-                $is_order_request_enabled = true;
-            }
-        }
-
-        $sales_orders = [];
-        if (! empty($pos_settings['enable_sales_order']) || $is_order_request_enabled) {
-            $sales_orders = Transaction::where('business_id', $business_id)
-                                ->where('type', 'sales_order')
-                                ->where('contact_id', $transaction->contact_id)
-                                ->where(function ($q) use ($transaction) {
-                                    $q->where('status', '!=', 'completed');
-
-                                    if (! empty($transaction->sales_order_ids)) {
-                                        $q->orWhereIn('id', $transaction->sales_order_ids);
-                                    }
-                                })
-                                ->pluck('invoice_no', 'id');
-        }
-
-        $payment_types = $this->transactionUtil->payment_types($transaction->location_id, false, $business_id);
-
-        $payment_lines = $this->transactionUtil->getPaymentDetails($id);
-        //If no payment lines found then add dummy payment line.
-        if (empty($payment_lines)) {
-            $payment_lines[] = $this->dummyPaymentLine;
-        }
-
-        $change_return = $this->dummyPaymentLine;
-
-        $customer_due = $this->transactionUtil->getContactDue($transaction->contact_id, $transaction->business_id);
-
-        $customer_due = $customer_due != 0 ? $this->transactionUtil->num_f($customer_due, true) : '';
-
-        //Added check because $users is of no use if enable_contact_assign if false
-        $users = config('constants.enable_contact_assign') ? User::forDropdown($business_id, false, false, false, true) : [];
+        $product_temperatures = DB::table('temperature_fixed')->pluck('temperature', 'temperature');
 
         return view('sell.edit')
-            ->with(compact('business_details', 'taxes', 'sell_details', 'transaction', 'commission_agent', 'types', 'customer_groups', 'pos_settings', 'waiters', 'invoice_schemes', 'default_invoice_schemes', 'redeem_details', 'edit_discount', 'edit_price', 'shipping_statuses', 'warranties', 'statuses', 'sales_orders', 'payment_types', 'accounts', 'payment_lines', 'change_return', 'is_order_request_enabled', 'customer_due', 'users'));
+            ->with(compact(
+                'sell',
+                'jar_items',
+                'packet_items',
+                'business_details',
+                'taxes',
+                'walk_in_customer',
+                'business_locations',
+                'bl_attributes',
+                'default_location',
+                'commission_agent',
+                'types',
+                'customer_groups',
+                'payment_types',
+                'price_groups',
+                'default_datetime',
+                'pos_settings',
+                'invoice_schemes',
+                'default_invoice_schemes',
+                'shipping_statuses',
+                'jarOptions',
+                'packetOptions',
+                'product_temperatures'
+            ));
+    }
+
+    public function update(Request $request, $id)
+    {
+        // Add validation first
+        $request->validate([
+            'contact_id' => 'required|exists:contacts,id',
+            // Add other necessary validations
+        ]);
+
+        // Log the entire request for debugging
+        \Log::info('Sell Update Request Data:', $request->all());
+
+        DB::beginTransaction();
+
+        try {
+            $sell = Sell::findOrFail($id);
+            
+            // Parse date with explicit format
+            $transactionDate = \Carbon\Carbon::createFromFormat('m/d/Y H:i', $request->transaction_date);
+
+            // Update the main sell record
+            $sell->update([
+                'location_id' => $request->location_id,
+                'contact_id' => $request->contact_id,
+                'pay_term_number' => $request->pay_term_number ?? null,
+                'pay_term_type' => $request->pay_term_type ?? null,
+                'transaction_date' => $transactionDate,
+                'status' => $request->status,
+                'invoice_scheme_id' => $request->invoice_scheme_id,
+                'invoice_no' => $request->invoice_no ?? null,
+                'shipping_details' => $request->shipping_details ?? null,
+                'shipping_address' => $request->shipping_address ?? null,
+                'shipping_charges' => $request->shipping_charges ?? 0,
+                'shipping_status' => $request->shipping_status ?? null,
+                'delivered_to' => $request->delivered_to ?? null,
+                'delivery_person' => $request->delivery_person ?? null,
+                'final_total' => $request->final_total ?? 0
+            ]);
+
+            // Delete existing items to replace with new ones
+            SellItem::where('sell_id', $id)->delete();
+
+            // Handle Jar Items
+            if (!empty($request->jar_type) && is_array($request->jar_type)) {
+                foreach ($request->jar_type as $index => $jarType) {
+                    if (!empty($jarType)) {
+                        SellItem::create([
+                            'sell_id' => $sell->id,
+                            'item_type' => 'jar',
+                            'item_name' => $jarType,
+                            'quantity' => $request->jar_value[$index] ?? 0,
+                            'price' => $request->jar_price[$index] ?? 0
+                        ]);
+                    }
+                }
+            }
+
+            // Handle Packet Items
+            if (!empty($request->packet_type) && is_array($request->packet_type)) {
+                foreach ($request->packet_type as $index => $packetType) {
+                    if (!empty($packetType)) {
+                        SellItem::create([
+                            'sell_id' => $sell->id,
+                            'item_type' => 'packet',
+                            'item_name' => $packetType,
+                            'quantity' => $request->packet_value[$index] ?? 0,
+                            'price' => $request->packet_price[$index] ?? 0
+                        ]);
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return redirect()->route('sells.index')->with('success', 'Sell record updated successfully');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            // Log the full error for debugging
+            \Log::error('Sell Update Error: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+
+            return redirect()->back()->with('error', 'Error updating sell record: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -1885,4 +2063,52 @@ class SellController extends Controller
         echo 'Mapping reset success';
         exit;
     }
+
+    public function destroy($id)
+{
+    try {
+        $business_id = request()->session()->get('user.business_id');
+
+        //Check if user has permission
+        if (!auth()->user()->can('sell.delete')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        //Check if the transaction can be deleted
+        $sell = Sell::findOrFail($id);
+        
+        DB::beginTransaction();
+
+        try {
+            //Delete sell items first
+            SellItem::where('sell_id', $id)->delete();
+
+            //Delete the sell transaction
+            $sell->delete();
+
+            DB::commit();
+
+            return response()->json(['success' => true, 'msg' => __('messages.deleted_success')]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error deleting sell record: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+
+            return response()->json([
+                'success' => false,
+                'msg' => __('messages.something_went_wrong')
+            ]);
+        }
+
+    } catch (\Exception $e) {
+        \Log::error('Error in destroy method: ' . $e->getMessage());
+        \Log::error($e->getTraceAsString());
+
+        return response()->json([
+            'success' => false,
+            'msg' => __('messages.something_went_wrong')
+        ]);
+    }
+}
 }

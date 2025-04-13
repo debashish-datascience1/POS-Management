@@ -229,6 +229,13 @@ class AdminSidebarMenu
                                 ['icon' => '', 'active' => request()->segment(1) == 'brands']
                             );
                         }
+                        if (auth()->user()->can('stock.view')) {
+                            $sub->url(
+                                action([\App\Http\Controllers\StockController::class, 'index']),
+                                __('lang_v1.stocks'),
+                                ['icon' => '', 'active' => request()->segment(1) == 'stocks']
+                            );
+                        }
 
                         $sub->url(
                             action([\App\Http\Controllers\WarrantyController::class, 'index']),
